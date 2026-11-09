@@ -1,0 +1,166 @@
+/* Liquid Glass design system, shared by the new tab and the settings page.
+   One set of tokens, three materials. Components pick a material; they don't invent their own rgba values.
+
+   Materials, from lightest to most lifted:
+     .glass.thin     controls sitting on the wallpaper (search field, page dots, floating buttons)
+     .glass.regular  panels (open folder, settings card)
+     .glass.thick    things lifted above everything (dragged icon, badges, menus)
+   Each is a tinted, blurred, saturated fill + a rim of light along the edge (::before)
+   + an inner top highlight + a soft layered shadow. */
+
+:root {
+  --font: -apple-system, "SF Pro Text", "SF Pro Display", BlinkMacSystemFont, "Helvetica Neue", "Segoe UI", Roboto, sans-serif;
+
+  /* Text on glass (the wallpapers are mid-to-dark, so text is light) */
+  --text: rgba(255, 255, 255, .96);
+  --text-2: rgba(255, 255, 255, .72);
+  --text-3: rgba(255, 255, 255, .52);
+  --text-shadow: 0 1px 2px rgba(0, 0, 0, .35);
+  --accent: #0a84ff;
+  --danger: #ff6961;
+  --focus-ring: 0 0 0 3px rgba(255, 255, 255, .9), 0 0 0 6px rgba(10, 132, 255, .55);
+  --hairline: rgba(255, 255, 255, .14);
+
+  /* Shape */
+  --radius-xs: 8px;
+  --radius-s: 12px;
+  --radius-m: 18px;
+  --radius-l: 28px;
+  --radius-xl: 36px;
+  --radius-pill: 999px;
+  --radius-icon: 23%; /* app-icon squircle */
+
+  /* Motion */
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --ease-spring: cubic-bezier(.34, 1.4, .64, 1);
+  --fast: .16s;
+  --medium: .28s;
+
+  /* Materials: tint (a light sheen over a slight dark tint keeps white text readable on any wallpaper) */
+  --thin-fill: linear-gradient(180deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .10)), rgba(30, 32, 40, .10);
+  --thin-blur: blur(22px) saturate(180%);
+  --thin-shadow: 0 4px 16px rgba(0, 0, 0, .14), 0 1px 2px rgba(0, 0, 0, .10);
+
+  --regular-fill: linear-gradient(180deg, rgba(255, 255, 255, .20), rgba(255, 255, 255, .06) 60%), rgba(24, 26, 34, .26);
+  --regular-blur: blur(44px) saturate(170%);
+  --regular-shadow: 0 30px 80px rgba(0, 0, 0, .30), 0 8px 24px rgba(0, 0, 0, .18);
+
+  --thick-fill: linear-gradient(180deg, rgba(255, 255, 255, .18), rgba(255, 255, 255, .04)), rgba(28, 30, 38, .62);
+  --thick-blur: blur(30px) saturate(160%);
+  --thick-shadow: 0 16px 40px rgba(0, 0, 0, .36), 0 4px 10px rgba(0, 0, 0, .2);
+
+  /* Rim light: brightest where light "hits" (top-left), fading round the edge, a faint bounce bottom-right */
+  --rim: linear-gradient(150deg, rgba(255, 255, 255, .75), rgba(255, 255, 255, .18) 30%, rgba(255, 255, 255, .04) 55%, rgba(255, 255, 255, .28));
+  --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, .38), inset 0 -1px 0 rgba(0, 0, 0, .06);
+
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Component display rules (grid, flex…) must never un-hide something the code hid */
+[hidden] { display: none !important; }
+
+.glass {
+  --fill: var(--thin-fill);
+  --blur: var(--thin-blur);
+  --shadow: var(--thin-shadow);
+  background: var(--fill);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  box-shadow: var(--shadow), var(--inner-highlight);
+  color: var(--text);
+}
+.glass.regular { --fill: var(--regular-fill); --blur: var(--regular-blur); --shadow: var(--regular-shadow); }
+.glass.thick { --fill: var(--thick-fill); --blur: var(--thick-blur); --shadow: var(--thick-shadow); }
+
+/* The rim: a 1px gradient border drawn by a masked pseudo-element, so it follows any radius.
+   (Dialogs and popovers keep their own top-layer positioning, so only other elements get position: relative.) */
+.glass:not(dialog, [popover]) { position: relative; }
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Glass you can press: highlight on hover, sink a little on press */
+.glass-button {
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--fast), transform var(--medium) var(--ease-spring), box-shadow var(--fast);
+}
+.glass-button:hover { --fill: linear-gradient(180deg, rgba(255, 255, 255, .32), rgba(255, 255, 255, .16)), rgba(30, 32, 40, .1); }
+.glass-button:active { transform: scale(.94); }
+.glass-button:focus-visible { outline: none; box-shadow: var(--focus-ring), var(--shadow); }
+.glass-button:disabled { opacity: .55; cursor: progress; }
+.glass-button svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Round icon buttons (close, back, settings) */
+.glass-button.round { width: 36px; height: 36px; padding: 0; border-radius: 50%; }
+/* Text pills */
+.glass-button.pill { padding: 7px 14px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 500; }
+
+/* Pop-up menu: a small glass capsule with a chevron (the open list itself is the system's) */
+.select { position: relative; display: inline-flex; }
+.select::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border: solid var(--text-2);
+  border-width: 0 1.6px 1.6px 0;
+  translate: 0 -70%;
+  rotate: 45deg;
+  pointer-events: none;
+}
+select {
+  appearance: none;
+  min-width: 128px;
+  padding: 6px 34px 6px 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .2), rgba(255, 255, 255, .1));
+  box-shadow: var(--inner-highlight), inset 0 0 0 1px rgba(255, 255, 255, .14), 0 1px 3px rgba(0, 0, 0, .12);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--fast), box-shadow var(--fast);
+}
+select:hover { background: linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .16)); }
+select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+select option { color: #000; }
+
+/* No backdrop-filter (older browsers): solid, still-readable surfaces */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { --fill: rgba(44, 46, 56, .86); }
+  .glass.regular { --fill: rgba(36, 38, 48, .92); }
+  .glass.thick { --fill: rgba(30, 32, 40, .95); }
+}
+
+/* macOS "Reduce transparency": frosted, not see-through */
+@media (prefers-reduced-transparency: reduce) {
+  .glass { --fill: rgba(44, 46, 56, .94); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* macOS "Increase contrast": firmer edges and text */
+@media (prefers-contrast: more) {
+  :root { --text-2: rgba(255, 255, 255, .9); --text-3: rgba(255, 255, 255, .78); --hairline: rgba(255, 255, 255, .4); }
+  .glass::before { background: rgba(255, 255, 255, .7); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-button { transition: none; }
+  .glass-button:active { transform: none; }
+}

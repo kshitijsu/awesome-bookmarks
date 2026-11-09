@@ -1,0 +1,47 @@
+/* Wallpapers, shared by the new tab and the settings page. settings.js sets data-wallpaper on <html>. */
+:root {
+  --wp-meadow:
+    radial-gradient(ellipse at 50% 0%, #8c86b8 0%, transparent 55%),
+    radial-gradient(ellipse at 20% 100%, #2f6b1f 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 90%, #5c8a2a 0%, transparent 55%),
+    linear-gradient(#6f74a6, #3d6b3a 45%, #234a17);
+  --wp-dusk:
+    radial-gradient(ellipse at 75% 10%, #f6a37a 0%, transparent 50%),
+    radial-gradient(ellipse at 10% 90%, #3a1f5c 0%, transparent 60%),
+    linear-gradient(#3b2a5c, #a25a7c 55%, #f0a77a);
+  --wp-ocean:
+    radial-gradient(ellipse at 30% 0%, #6fc3d8 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, #0b1d3a 0%, transparent 60%),
+    linear-gradient(#1f5f8b, #17406b 50%, #0d2747);
+  --wp-sunrise:
+    radial-gradient(ellipse at 50% 100%, #ffd27a 0%, transparent 55%),
+    radial-gradient(ellipse at 0% 0%, #6a5cff 0%, transparent 55%),
+    linear-gradient(#8a6cf0, #ef7a8c 55%, #ffb36b);
+  --wp-graphite:
+    radial-gradient(ellipse at 50% 0%, #5b5f68 0%, transparent 60%),
+    linear-gradient(#3a3d43, #2a2c31 55%, #1b1c1f);
+  --wallpaper: var(--wp-meadow);
+}
+:root[data-wallpaper="dusk"] { --wallpaper: var(--wp-dusk); }
+:root[data-wallpaper="ocean"] { --wallpaper: var(--wp-ocean); }
+:root[data-wallpaper="sunrise"] { --wallpaper: var(--wp-sunrise); }
+:root[data-wallpaper="graphite"] { --wallpaper: var(--wp-graphite); }
+:root[data-wallpaper="custom"] { --wallpaper: var(--wallpaper-image) center / cover no-repeat, #222; }
+
+html { background: #1d1f22; }
+
+/* The wallpaper lives on its own layer so it can be blurred without blurring the icons */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--wallpaper);
+  transition: opacity .3s;
+}
+:root:not([data-wallpaper]) body::before { opacity: 0; } /* hold off until settings load: no flash of the wrong one */
+:root.blur-wallpaper body::before { inset: -60px; filter: blur(28px) brightness(.85); }
+/* A bright photo would wash out the white labels: dim it and deepen the text shadow */
+:root.bright-wallpaper { --text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+:root.bright-wallpaper body::before { filter: brightness(.62); }
+:root.bright-wallpaper.blur-wallpaper body::before { filter: blur(28px) brightness(.62); }
