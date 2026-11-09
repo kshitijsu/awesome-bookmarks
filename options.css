@@ -1,0 +1,128 @@
+/* Settings page. Surfaces take their material from glass.css; this file only lays things out. */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 56px 16px;
+  font: 14px/1.4 var(--font);
+  color: var(--text);
+}
+
+/* The sheet: one regular-glass card; inside it, inset grouped lists (a quieter, unblurred surface,
+   so glass never stacks on glass) */
+.card {
+  max-width: 580px;
+  margin: 0 auto;
+  padding: 26px 28px 22px;
+  border-radius: var(--radius-l);
+  animation: sheet-in .45s var(--ease);
+}
+@keyframes sheet-in { from { opacity: 0; transform: translateY(12px) scale(.98); } }
+
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.025em; text-shadow: var(--text-shadow); }
+h2 { margin: 22px 0 8px 14px; color: var(--text-2); font-size: 13px; font-weight: 600; }
+
+.group {
+  border-radius: var(--radius-m);
+  background: rgba(255, 255, 255, .07);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1), inset 0 1px 0 rgba(255, 255, 255, .12);
+  overflow: hidden;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 50px;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+label.row { cursor: pointer; }
+.row + .row { box-shadow: inset 0 1px 0 var(--hairline); }
+.actions { display: flex; gap: 8px; }
+.row-text { display: grid; gap: 2px; }
+.row-sub { color: var(--text-2); font-size: 12px; }
+.row .glass-button { flex: none; }
+
+.hint { margin: 8px 14px 0; color: var(--text-2); font-size: 12.5px; }
+.footnote { margin: 22px 14px 0; color: var(--text-3); font-size: 12px; }
+.error { margin: 8px 14px 0; color: var(--danger); font-size: 13px; font-weight: 500; }
+
+/* Switch (a styled checkbox, so it stays a real form control) */
+.switch {
+  position: relative;
+  flex: none;
+  width: 44px;
+  height: 26px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  appearance: none;
+  background: rgba(255, 255, 255, .2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), inset 0 1px 2px rgba(0, 0, 0, .15);
+  cursor: pointer;
+  transition: background var(--medium) var(--ease);
+}
+.switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #fff, #f0f0f3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(0, 0, 0, .06);
+  transition: translate var(--medium) var(--ease-spring);
+}
+.switch:checked { background: #34c759; }
+.switch:checked::before { translate: 18px 0; }
+.switch:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Wallpaper swatches */
+.swatches { display: flex; gap: 14px; padding: 6px 0 4px; overflow-x: auto; scrollbar-width: none; }
+.swatch-option { display: grid; flex: none; justify-items: center; gap: 7px; color: var(--text-2); font-size: 12px; cursor: pointer; }
+.swatch-option[hidden] { display: none; }
+.swatch-option input { position: absolute; opacity: 0; pointer-events: none; }
+.swatch {
+  position: relative;
+  width: 74px;
+  height: 50px;
+  border-radius: var(--radius-s);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, .28), inset 0 0 0 1px rgba(255, 255, 255, .18);
+  transition: transform var(--medium) var(--ease-spring), box-shadow var(--fast);
+}
+.swatch::after { /* the same sheen the app icons have */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(170deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0) 45%);
+}
+.swatch-option:hover .swatch { transform: translateY(-2px); }
+.swatch-option input:checked + .swatch { box-shadow: 0 0 0 2px rgba(255, 255, 255, .95), 0 0 0 5px rgba(10, 132, 255, .5), 0 3px 10px rgba(0, 0, 0, .28); }
+.swatch-option input:checked ~ span:last-child { color: var(--text); font-weight: 600; }
+.swatch-option input:focus-visible + .swatch { box-shadow: var(--focus-ring); }
+
+.glass-button.danger { color: var(--danger); background: rgba(255, 105, 97, .14); box-shadow: inset 0 0 0 1px rgba(255, 105, 97, .3); }
+.glass-button.danger:hover { background: rgba(255, 105, 97, .24); }
+
+@media (max-width: 480px) {
+  body { padding: 20px 10px; }
+  .card { padding: 20px 16px 16px; border-radius: var(--radius-m); }
+  h1 { font-size: 24px; }
+  select { min-width: 110px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { animation: none; }
+  .switch, .switch::before, .swatch, select { transition: none; }
+  .swatch-option:hover .swatch { transform: none; }
+}
+
+/* Clean-up results: long names and addresses are cut short, the full address shows on hover */
+.results { margin-top: 8px; max-height: 360px; overflow-y: auto; }
+.row-text { min-width: 0; }
+.results .row-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.glass-button:disabled { opacity: .5; pointer-events: none; }

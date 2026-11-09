@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Awesome bookmarks settings</title>
+  <link rel="stylesheet" href="glass.css">
+  <link rel="stylesheet" href="wallpaper.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="card glass regular">
+    <header class="card-header">
+      <h1>Settings</h1>
+      <button id="close" class="glass thin glass-button round" type="button" aria-label="Close settings" title="Close (Esc)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+
+    <section>
+      <h2>Grid</h2>
+      <div class="group">
+        <label class="row"><span>Columns</span><span class="select"><select id="cols"></select></span></label>
+        <label class="row"><span>Rows</span><span class="select"><select id="rows"></select></span></label>
+        <label class="row"><span class="row-text"><span>Emoji icons</span><small class="row-sub">Each bookmark gets an emoji that fits the site</small></span><input id="emoji" class="switch" type="checkbox" role="switch"></label>
+      </div>
+      <p class="hint">Automatic fits as many icons as the window allows, up to 7 × 5 like Launchpad. Turn emoji icons off to show each site's own icon. A picture or emoji you choose for a bookmark always shows.</p>
+    </section>
+
+    <section>
+      <h2>Wallpaper</h2>
+      <div class="group">
+        <div class="row"><div id="wallpapers" class="swatches" role="radiogroup" aria-label="Wallpaper"></div></div>
+        <div class="row">
+          <span>Your own image</span>
+          <span class="actions">
+            <button id="remove-image" class="glass-button pill danger" type="button" hidden>Remove</button>
+            <label class="glass thin glass-button pill">Choose…<input id="image" type="file" accept="image/*" hidden></label>
+          </span>
+        </div>
+        <label class="row"><span>Blur the wallpaper</span><input id="blur" class="switch" type="checkbox" role="switch"></label>
+      </div>
+      <p id="image-error" class="error" role="alert" hidden></p>
+    </section>
+
+    <section>
+      <h2>Widgets</h2>
+      <div class="group">
+        <label class="row"><span>Clock</span><input id="clock" class="switch" type="checkbox" role="switch"></label>
+        <label class="row"><span>Frequent sites</span><input id="frequent" class="switch" type="checkbox" role="switch"></label>
+        <div class="row">
+          <span class="row-text"><span>Next meeting from Google Calendar</span><small id="calendar-status" class="row-sub"></small></span>
+          <button id="calendar-button" class="glass thin glass-button pill" type="button"></button>
+        </div>
+      </div>
+      <p class="hint">Frequent sites are Chrome's own most-visited list, read on this computer. Only today's upcoming events are read, on this computer. Nothing is saved or sent anywhere except Google.</p>
+    </section>
+
+    <section>
+      <h2>Folders on the home grid</h2>
+      <div id="folders" class="group"></div>
+      <p class="hint">Everything in your Bookmarks bar is always shown. Choose which of Chrome's other top-level folders appear too.</p>
+    </section>
+
+    <section>
+      <h2>Clean up</h2>
+      <div class="group">
+        <div class="row">
+          <span class="row-text"><span>Duplicate bookmarks</span><small class="row-sub">The same page saved more than once</small></span>
+          <button id="find-duplicates" class="glass thin glass-button pill" type="button">Find</button>
+        </div>
+        <div class="row">
+          <span class="row-text"><span>Broken links</span><small class="row-sub">Pages that are gone or can't be reached</small></span>
+          <button id="check-links" class="glass thin glass-button pill" type="button">Check</button>
+        </div>
+      </div>
+      <p id="cleanup-status" class="hint" role="status"></p>
+      <div id="cleanup-results" class="group results" hidden></div>
+    </section>
+
+    <section>
+      <h2>Backup</h2>
+      <div class="group">
+        <div class="row">
+          <span class="row-text"><span>Settings and tasks</span><small class="row-sub">Save them to a file, or restore from one</small></span>
+          <span class="actions">
+            <label class="glass thin glass-button pill">Restore…<input id="restore" type="file" accept=".json,application/json" hidden></label>
+            <button id="backup" class="glass thin glass-button pill" type="button">Back up</button>
+          </span>
+        </div>
+      </div>
+      <p id="backup-status" class="hint" role="status"></p>
+      <p class="hint">Bookmarks, folders and the Dock are Chrome bookmarks, so Chrome already syncs them. Checking links asks for access to websites just for the check, and gives it back when done.</p>
+    </section>
+
+    <p class="footnote">Changes and tasks save straight away and sync to other computers signed in to Chrome. Your own wallpaper image stays on this computer.</p>
+  </main>
+
+  <script src="settings.js"></script>
+  <script src="options.js"></script>
+  <script src="dev-reload.js"></script>
+</body>
+</html>
