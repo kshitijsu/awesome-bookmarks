@@ -1,0 +1,5 @@
+# Built store packages (pack.sh)
+*.zip
+
+# macOS
+.DS_Store
