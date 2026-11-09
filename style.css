@@ -1,0 +1,686 @@
+/* New tab. Surfaces take their material from glass.css; this file only lays things out. */
+* { box-sizing: border-box; }
+
+body {
+  --icon: clamp(56px, min(7vw, 11vh), 88px);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  margin: 0;
+  padding: 28px 16px 20px;
+  overflow: hidden;
+  font: 14px/1.3 var(--font);
+  color: var(--text);
+  user-select: none;
+}
+
+/* Opening: everything settles in from 106% while fading in, once the bookmarks are drawn.
+   (No blur in the animation: blurring the whole page each frame stalled it.) */
+body:not(.ready) :is(.search, #pager, #dots, #widgets, #dock) { opacity: 0; }
+body.ready :is(.search, #pager, #dots, #widgets, #dock) { animation: launch .5s var(--ease); }
+
+/* ---- Widgets: thin-glass cards in the top corners (a row above the search field on narrow screens) ---- */
+#widgets {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  pointer-events: none; /* the gap between the cards stays clickable for the page */
+}
+.widget {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  /* never reach the centred search field */
+  max-width: min(300px, calc(50vw - 250px));
+  min-width: 0;
+  padding: 10px 16px 11px;
+  border-radius: var(--radius-m);
+  pointer-events: auto;
+}
+/* Join sits beside the details, keeping the card as short as the clock so it never reaches the grid */
+/* Right corner: the meeting card, then the "Add from history" button in the very corner */
+.widgets-end { display: flex; align-items: flex-start; gap: 8px; min-width: 0; margin-left: auto; }
+#import-history { flex: none; color: var(--text-2); pointer-events: auto; }
+#import-history:hover { color: var(--text); }
+#meeting { grid-template-columns: minmax(0, 1fr) auto; column-gap: 14px; }
+#meeting > :not(.join) { grid-column: 1; }
+#meeting > .join { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin: 0; }
+.clock-time { font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.widget-sub { max-width: 100%; overflow: hidden; color: var(--text-2); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.widget-label { color: var(--text-2); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.widget-title {
+  max-width: 100%;
+  overflow: hidden;
+  color: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+a.widget-title:hover { text-decoration: underline; }
+.widget .glass-button { margin-top: 6px; padding: 5px 14px; font-size: 12.5px; text-decoration: none; }
+
+@media (max-width: 860px) {
+  #widgets { position: static; order: -2; margin-bottom: 12px; pointer-events: auto; }
+  .widget { flex: 1; max-width: none; }
+  .widgets-end { flex: 1; justify-content: flex-end; }
+}
+@keyframes launch { from { opacity: 0; scale: 1.06; } }
+
+/* ---- Search field: a thin-glass capsule with a magnifier ---- */
+.search {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  width: min(360px, 100%);
+  height: 38px;
+  margin: 0 auto 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  cursor: text;
+  transition: width var(--medium) var(--ease), box-shadow var(--fast);
+}
+.search svg { flex: none; width: 16px; height: 16px; stroke: var(--text-2); fill: none; stroke-width: 2.2; stroke-linecap: round; }
+.search:focus-within { width: min(440px, 100%); box-shadow: var(--focus-ring), var(--shadow); }
+/* The field inside any search capsule (home page and the history panel) */
+.search input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  user-select: text;
+}
+.search input::placeholder { color: var(--text-2); }
+.search input::-webkit-search-cancel-button { filter: invert(1); opacity: .7; }
+
+/* ---- Frequent sites: a small row of icons under the search field, gone while searching ---- */
+.frequent { display: flex; flex: none; align-self: center; gap: 6px; max-width: 100%; margin: -16px auto 20px; padding: 6px; overflow: hidden; border-radius: var(--radius-m); }
+body.searching .frequent, body.no-bookmarks .frequent { display: none; }
+.frequent-site { display: grid; place-items: center; padding: 6px; border-radius: var(--radius-s); transition: background var(--fast); }
+.frequent-site:hover { background: rgba(255, 255, 255, .16); }
+.frequent-site:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.frequent-site > :is(img, .letter) { --icon: 32px; width: 32px; height: 32px; border-radius: var(--radius-icon); }
+.frequent-site > img { padding: 5px; background: linear-gradient(180deg, #fff, #eceef3); box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+
+/* While typing: "Search the web for …", in the frequent row's spot */
+.web-search { display: block; flex: none; align-self: center; max-width: min(440px, 100%); margin: -20px auto 18px; overflow: hidden; color: var(--text); white-space: nowrap; text-overflow: ellipsis; }
+body.no-bookmarks .web-search { margin: 0 auto 16px; }
+
+/* ---- Pages sit side by side in the track; the pager shows one at a time ---- */
+/* clip, not hidden: focusing an off-page tile must not scroll the pager behind our transforms */
+.pager { position: relative; overflow: clip; touch-action: none; }
+#pager { flex: 1; min-height: 0; }
+.track { display: flex; height: 100%; transition: transform .5s var(--ease); will-change: transform; } /* kept on its own layer: no redraw when a swipe starts */
+.page {
+  display: grid;
+  flex: 0 0 100%;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-template-rows: repeat(var(--rows), 1fr);
+  place-items: center;
+  padding-inline: max(0px, calc((100% - 1200px) / 2));
+}
+
+/* ---- Page dots: a small thin-glass capsule, the current page a wider pill ---- */
+.dots { display: flex; flex: none; align-self: center; align-items: center; gap: 8px; height: 24px; margin-top: 14px; padding: 0 10px; border-radius: var(--radius-pill); }
+.dots:empty { visibility: hidden; }
+.dots button {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--text-3);
+  cursor: pointer;
+  transition: width var(--medium) var(--ease), background var(--fast);
+}
+.dots button:hover { background: var(--text-2); }
+.dots button[aria-current="true"] { width: 18px; background: var(--text); }
+.dots button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+#empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--text-2); font-size: 17px; font-weight: 500; text-shadow: var(--text-shadow); }
+#empty[hidden] { display: none; }
+
+/* No bookmarks at all: search field and message sit together in the middle */
+body.no-bookmarks { justify-content: center; }
+body.no-bookmarks .search { margin-bottom: 20px; }
+body.no-bookmarks #pager { flex: none; overflow: visible; }
+/* The empty track would take the pager's whole height (100%), pushing the message out under the Dock */
+body.no-bookmarks #pager .track { height: auto; }
+/* Search and message stay centred in the space above; the Dock keeps its place at the bottom */
+body.no-bookmarks :is(.search, #dock) { margin-top: auto; }
+body.no-bookmarks #empty { position: static; }
+body.no-bookmarks #dots { display: none; }
+
+/* ---- App tiles ---- */
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-user-drag: none;
+}
+.app span:not(.delete, .letter, .emoji) {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: var(--text-shadow);
+}
+.app:focus-visible { outline: none; }
+.app:focus-visible .icon, .app.selected .icon { box-shadow: var(--focus-ring), 0 6px 16px rgba(0, 0, 0, .25); }
+.app.dragging { visibility: hidden; }
+
+/* Hover / press / merge growth. Icons grow at their real size, not with transform: scale(), which only
+   stretches an already-drawn picture and makes text, edges and favicons go soft. Registered so it animates. */
+@property --grow { syntax: "<number>"; inherits: true; initial-value: 1; }
+.app { transition: --grow var(--medium) var(--ease-spring); }
+.app:hover { --grow: 1.12; }
+.app:active { --grow: .96; }
+
+/* The icon: a white squircle with a glossy sheen and a soft drop shadow, like an app icon */
+.icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: calc(var(--icon) * var(--grow));
+  height: calc(var(--icon) * var(--grow));
+  margin: calc(var(--icon) * (1 - var(--grow)) / 2) 0; /* growth spills into the gap: the label doesn't move */
+  padding: 0;
+  border-radius: var(--radius-icon);
+  background: linear-gradient(180deg, #fff, #eceef3);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .22), 0 1px 3px rgba(0, 0, 0, .14);
+  transition: box-shadow var(--fast), filter var(--fast);
+}
+/* Sheen: light catching the top of the glass, and a hairline rim */
+.icon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(170deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 42%);
+  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .08), inset 0 1px 0 rgba(255, 255, 255, .7);
+  pointer-events: none;
+}
+.icon img { width: 56%; height: 56%; -webkit-user-drag: none; }
+/* A picture the user chose fills the whole tile, like an app icon (fitted, so logos aren't cut off) */
+.icon img.custom { width: 100%; height: 100%; object-fit: contain; border-radius: inherit; }
+.icon.folder img.custom { padding: 0; }
+.app:active .icon { filter: brightness(.9); }
+
+/* Folder: a thin-glass tile holding a 3x3 preview */
+.icon.folder {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: min-content;
+  align-content: start;
+  /* Sized from the icon itself: a % here would be a share of the whole grid cell, which squashed the previews */
+  gap: calc(var(--icon) * var(--grow) * .05);
+  padding: calc(var(--icon) * var(--grow) * .11);
+  /* lighter than the thin material: a folder should read as frosted glass, not a dark hole */
+  background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .22));
+  -webkit-backdrop-filter: var(--thin-blur);
+  backdrop-filter: var(--thin-blur);
+  box-shadow: var(--thin-shadow), var(--inner-highlight), inset 0 0 0 1px rgba(255, 255, 255, .22);
+}
+.icon.folder::after { background: linear-gradient(170deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, 0) 45%); box-shadow: none; }
+.icon.folder img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  padding: 10%;
+  border-radius: var(--radius-icon);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+}
+
+/* No favicon: a coloured letter fills the tile */
+.letter {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(160deg, hsl(var(--hue) 75% 64%), hsl(var(--hue) 62% 44%));
+  color: #fff;
+  font-size: calc(var(--icon) * var(--grow) * .44);
+  font-weight: 600;
+  letter-spacing: -.02em;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+}
+.icon:has(> .letter) { background: none; }
+/* Emoji icon: the emoji on a soft tint picked from the site's name */
+.emoji {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(160deg, hsl(var(--hue) 80% 94%), hsl(var(--hue) 55% 80%));
+  font-size: calc(var(--icon) * var(--grow) * .5);
+  line-height: 1;
+}
+.icon:has(> .emoji) { background: none; }
+.icon.folder .emoji { aspect-ratio: 1; height: auto; border-radius: var(--radius-icon); font-size: calc(var(--icon) * var(--grow) * .14); box-shadow: 0 1px 2px rgba(0, 0, 0, .18); }
+.icon.folder .letter { aspect-ratio: 1; height: auto; border-radius: var(--radius-icon); font-size: calc(var(--icon) * var(--grow) * .15); text-shadow: none; box-shadow: 0 1px 2px rgba(0, 0, 0, .18); }
+
+/* Dragging: the target icon swells and glows to say "drop to make a folder" */
+.app.merge { --grow: 1.16; }
+.app.merge .icon { box-shadow: 0 0 0 4px rgba(255, 255, 255, .6), 0 0 28px rgba(255, 255, 255, .35), 0 10px 24px rgba(0, 0, 0, .3); }
+
+/* The icon following the pointer: lifted off the page (a popover, so it stays above an open folder) */
+.ghost {
+  --grow: 1.12; /* lifted: the same real size as the hovered icon it was picked up from */
+  position: fixed;
+  inset: 0 auto auto 0;
+  margin: 0;
+  border: 0;
+  overflow: visible;
+  color: inherit;
+  pointer-events: none;
+  box-shadow: 0 22px 44px rgba(0, 0, 0, .38), 0 6px 14px rgba(0, 0, 0, .22);
+}
+.ghost .delete { display: none !important; }
+
+/* ---- Jiggle mode: icons wobble and bookmarks get a delete badge ---- */
+body.jiggle .app .icon { animation: jiggle .26s ease-in-out infinite alternate; }
+body.jiggle .app:nth-child(even) .icon { animation-delay: -.13s; }
+@keyframes jiggle { from { rotate: -2deg; } to { rotate: 2deg; } }
+
+.delete {
+  position: absolute;
+  z-index: 1;
+  top: -8px;
+  left: -8px;
+  display: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--thick-fill);
+  -webkit-backdrop-filter: var(--thick-blur);
+  backdrop-filter: var(--thick-blur);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35), inset 0 0 0 .5px rgba(255, 255, 255, .4);
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform var(--fast) var(--ease);
+}
+.delete:hover { transform: scale(1.12); }
+body.jiggle .delete { display: grid; }
+
+/* ---- Open folder: a regular-glass panel that grows out of the folder icon ---- */
+#drawer {
+  width: min(780px, calc(100% - 32px));
+  max-height: 85vh;
+  padding: 20px 32px 14px;
+  border: 0;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+#drawer::backdrop {
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, .12), rgba(0, 0, 0, .38));
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  backdrop-filter: blur(18px) saturate(120%);
+}
+/* The dimmed, blurred page behind fades with the zoom instead of snapping on and off */
+#drawer[open]::backdrop { animation: fade-in .26s var(--ease); }
+#drawer.closing::backdrop { animation: fade-out .26s var(--ease) forwards; }
+@keyframes fade-in { from { opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+/* Header: [back +] [name, centred] [Open all]. Equal side columns keep the name truly centred. */
+#drawer header { display: grid; grid-template-columns: 1fr minmax(0, 2.4fr) 1fr; align-items: center; gap: 8px; margin-bottom: 18px; }
+.drawer-side { display: flex; gap: 8px; min-width: 0; }
+.drawer-side.end { justify-content: flex-end; }
+#drawer-title {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  text-align: center;
+  text-shadow: var(--text-shadow);
+  outline: none;
+  cursor: text;
+  transition: background var(--fast), box-shadow var(--fast);
+}
+#drawer-title[readonly] { cursor: default; }
+#drawer-title:not([readonly]):hover { background: rgba(255, 255, 255, .08); }
+#drawer-title:not([readonly]):focus { background: rgba(255, 255, 255, .14); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25); }
+#drawer .dots { margin-top: 6px; }
+#open-all { white-space: nowrap; }
+
+/* ---- Dock: a glass shelf along the bottom; icons swell upward under the pointer ---- */
+.dock { flex: none; align-self: center; height: 76px; max-width: 100%; margin-top: 12px; overflow: visible; border-radius: 24px; transition: width .14s ease-out; } /* the shelf eases with the icons */
+.dock .page { grid-template-columns: repeat(var(--cols), auto); justify-content: unsafe center; align-items: end; padding: 0 0 12px; }
+.dock .app { position: relative; width: calc(var(--icon) * (var(--grow) + .613)); transition: --grow .14s ease-out; }
+.dock .icon { margin: calc(var(--icon) * (1 - var(--grow))) 0 0; } /* grow up, out of the shelf */
+/* Name above the hovered icon, in a small dark capsule */
+.dock .app > span:last-child {
+  position: absolute;
+  bottom: calc(100% + var(--icon) * (var(--grow) - 1) + 10px);
+  max-width: 220px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(30, 32, 40, .78);
+  font-size: 12px;
+  text-shadow: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--fast);
+}
+.dock .app:hover > span:last-child, .dock .app:focus-visible > span:last-child { opacity: 1; }
+body.jiggle .dock .app > span:last-child, .dock .app.dragging > span:last-child { opacity: 0; }
+/* Empty: a hint where the icons will go */
+.dock.empty { width: 240px !important; }
+.dock.empty::after { content: "Drag bookmarks here"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-2); font-size: 13px; pointer-events: none; }
+body.no-bookmarks .dock.empty { display: none; }
+@media (max-width: 700px) { body { padding-bottom: 64px; } } /* the Dock clears the corner buttons */
+
+/* ---- Tasks: a glass panel down the right side; the page makes room for it ---- */
+#tasks {
+  position: fixed;
+  top: 68px;
+  right: 16px;
+  bottom: 64px; /* clear of the + and settings buttons below it */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 300px;
+  padding: 16px 14px 14px;
+  border-radius: var(--radius-l);
+}
+body.tasks-open { padding-right: 332px; }
+/* The search field moves left with the page: the corner cards shrink so they never reach it */
+body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px))); }
+#tasks-toggle { flex: none; color: var(--text-2); pointer-events: auto; }
+#tasks-toggle:hover, #tasks-toggle[aria-expanded="true"] { color: var(--text); }
+.tasks-head { display: flex; align-items: center; gap: 10px; padding-left: 4px; }
+.tasks-head h2 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.tasks-count { flex: 1; color: var(--text-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+#tasks-close { width: 30px; height: 30px; color: var(--text-2); }
+.tasks-add { width: 100%; height: 36px; margin: 0; }
+.tasks-add:focus-within { width: 100%; }
+.tasks-list { flex: 1; min-height: 0; margin: 0; padding: 0; overflow-y: auto; list-style: none; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .25) transparent; }
+.tasks-list:empty::after { content: "No tasks yet"; display: block; padding: 24px 0; color: var(--text-3); text-align: center; }
+.task { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 8px; border-radius: var(--radius-s); }
+.task:hover, .task:focus-within { background: rgba(255, 255, 255, .08); }
+.task-text {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  outline: none;
+  user-select: text;
+}
+.task.done .task-text { color: var(--text-3); text-decoration: line-through; }
+.task-delete { flex: none; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--text-2); font-size: 17px; line-height: 1; cursor: pointer; opacity: 0; }
+.task:hover .task-delete, .task-delete:focus-visible { opacity: 1; }
+.task-delete:hover { background: rgba(255, 255, 255, .16); color: var(--text); }
+.task-delete:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+#tasks-clear { align-self: flex-start; color: var(--text-2); }
+/* Narrow windows: the panel floats over the page instead */
+@media (max-width: 860px) {
+  body.tasks-open { padding-right: 16px; }
+  #tasks { left: 16px; width: auto; z-index: 1; }
+}
+
+/* ---- Floating controls ---- */
+#settings, #add { position: fixed; bottom: 16px; color: var(--text-2); }
+#settings { right: 16px; }
+#add { right: 60px; }
+:is(#settings, #add):hover { color: var(--text); }
+
+/* ---- Right-click menu: thick glass, the most lifted surface ---- */
+/* Denser than the thick material: text sits on top of busy icons, so it must stay readable */
+.glass.menu { --fill: linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .04)), rgba(34, 36, 44, .84); --blur: blur(40px) saturate(180%); }
+.menu {
+  inset: auto;
+  min-width: 190px;
+  margin: 0;
+  padding: 5px;
+  border: 0;
+  border-radius: var(--radius-s);
+  font-size: 14px;
+}
+.menu:popover-open { animation: menu-in .14s var(--ease); }
+@keyframes menu-in { from { opacity: 0; scale: .96; } }
+.menu button {
+  display: block;
+  width: 100%;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.menu button:hover, .menu button:focus-visible { background: rgba(255, 255, 255, .16); outline: none; }
+.menu button.danger { color: var(--danger); }
+
+/* ---- "Deleted … Undo": a capsule at the bottom centre ---- */
+.toast {
+  inset: auto 0 56px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  margin: 0 auto;
+  padding: 6px 6px 6px 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+}
+.toast:not(:popover-open) { display: none; }
+.toast:popover-open { animation: toast-in .24s var(--ease); }
+@keyframes toast-in { from { opacity: 0; translate: 0 12px; } }
+.toast span { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.toast button { flex: none; }
+
+/* ---- Add / edit form ---- */
+#editor { width: min(460px, calc(100% - 32px)); padding: 22px 22px 18px; border: 0; border-radius: var(--radius-l); }
+#editor[open] { animation: menu-in .2s var(--ease); }
+#editor::backdrop { background: rgba(0, 0, 0, .3); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+#editor h2 { margin: 0 0 16px; font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.field { display: grid; gap: 6px; margin-bottom: 12px; color: var(--text-2); font-size: 12.5px; font-weight: 500; }
+.field input {
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: rgba(0, 0, 0, .18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+  user-select: text;
+}
+.field input::placeholder { color: var(--text-3); }
+.field input:focus { box-shadow: var(--focus-ring); }
+#editor .error { margin: 0 0 10px; color: var(--danger); font-size: 13px; font-weight: 500; }
+/* Icon row: a live preview of the tile, then choose / reset */
+.icon-picker { display: flex; align-items: center; gap: 10px; color: var(--text); }
+#editor-icon { --icon: 44px; --grow: 1; flex: none; }
+#editor-icon-reset { color: var(--text-2); }
+/* The chooser: a scrolling grid of small tiles; the chosen one gets a blue ring */
+.icon-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 4px;
+  max-height: 140px;
+  margin-top: 4px;
+  padding: 6px;
+  overflow-y: auto;
+  border-radius: var(--radius-s);
+  background: rgba(0, 0, 0, .14);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1);
+}
+.choice { display: grid; place-items: center; height: 40px; padding: 0; border: 0; border-radius: 10px; background: none; cursor: pointer; }
+.choice:hover { background: rgba(255, 255, 255, .12); }
+.choice:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.choice[aria-selected="true"] { background: rgba(255, 255, 255, .16); box-shadow: inset 0 0 0 2px var(--accent); }
+.choice .icon { --icon: 30px; --grow: 1; box-shadow: 0 1px 3px rgba(0, 0, 0, .2); }
+.choice .icon::after { display: none; }
+.choice .emoji { font-size: 19px; }
+.choice .letter { font-size: 15px; }
+.field input.emoji-input { width: 52px; padding: 7px 0; font-size: 20px; text-align: center; }
+#editor .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.glass-button.primary { background: var(--accent); color: #fff; box-shadow: 0 2px 10px rgba(10, 132, 255, .4), var(--inner-highlight); }
+.glass-button.primary:hover { background: #3395ff; }
+
+/* ---- Add from history: a regular-glass sheet with a scrolling, tickable list ---- */
+#importer { width: min(660px, calc(100% - 32px)); max-height: min(720px, 86vh); padding: 18px 18px 14px; border: 0; border-radius: var(--radius-l); }
+#importer[open] { display: flex; flex-direction: column; animation: menu-in .2s var(--ease); }
+#importer::backdrop { background: rgba(0, 0, 0, .3); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.importer-head { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 12px 6px; }
+.importer-head h2 { margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+.importer-search, .importer-search:focus-within { flex: none; width: 100%; margin: 0 0 12px; }
+
+/* The list: an inset grouped panel (quieter than glass, like the settings page), thin scrollbar */
+.importer-list {
+  flex: 1;
+  min-height: 140px;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-m);
+  background: rgba(255, 255, 255, .06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .28) transparent;
+}
+.history-row {
+  display: grid;
+  grid-template-columns: auto 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  transition: background var(--fast);
+}
+.history-row:hover { background: rgba(255, 255, 255, .08); }
+.history-row:has(input:checked:not(:disabled)) { background: rgba(10, 132, 255, .22); }
+.history-row:has(input:disabled) { cursor: default; }
+.history-row:has(input:disabled) :is(.history-icon, .history-text) { opacity: .5; }
+
+/* Round check, Apple style: an empty ring, filled blue with a tick when picked, grey when already saved */
+:is(.history-row, .task) input[type="checkbox"] {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border-radius: 50%;
+  appearance: none;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .5);
+  cursor: inherit;
+  transition: background var(--fast), box-shadow var(--fast);
+}
+:is(.history-row, .task) input[type="checkbox"]::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  margin-top: -2px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  rotate: 45deg;
+  scale: 0;
+  transition: scale var(--medium) var(--ease-spring);
+}
+:is(.history-row, .task) input[type="checkbox"]:checked { background: var(--accent); box-shadow: 0 1px 4px rgba(10, 132, 255, .5); }
+:is(.history-row, .task) input[type="checkbox"]:checked::after { scale: 1; }
+:is(.history-row, .task) input[type="checkbox"]:disabled:checked { background: rgba(255, 255, 255, .3); box-shadow: none; }
+:is(.history-row, .task) input[type="checkbox"]:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Site icon: the same little app tile as the grid (letter tile when there's no favicon) */
+.history-icon {
+  --icon: 28px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: var(--radius-icon);
+  background: linear-gradient(180deg, #fff, #eceef3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+}
+.history-icon img { width: 64%; height: 64%; }
+.history-text { display: grid; gap: 1px; min-width: 0; }
+.history-title, .history-url { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.history-title { font-size: 14px; font-weight: 500; }
+.history-url { color: var(--text-3); font-size: 12px; }
+.history-count { color: var(--text-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.history-row:has(input:disabled) .history-count { color: var(--text-2); font-weight: 500; }
+.importer-note { margin: 18px 0; color: var(--text-2); text-align: center; }
+.importer-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; padding: 12px 4px 0; box-shadow: inset 0 1px 0 var(--hairline); }
+.importer-dest { display: flex; align-items: center; gap: 8px; color: var(--text-2); font-size: 13px; }
+.importer-dest select { max-width: 260px; }
+.importer-name {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, .18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  user-select: text;
+}
+.importer-name:focus { box-shadow: var(--focus-ring); }
+.importer-foot .spacer { flex: 1; }
+
+
+@media (max-width: 480px) {
+  body { padding-top: 20px; }
+  .search { margin-bottom: 20px; }
+  #drawer { padding: 16px 14px 10px; border-radius: var(--radius-l); }
+  #drawer-title { font-size: 22px; }
+}
+
+/* macOS "Reduce motion": pages snap, nothing zooms, swells or wobbles (JS animations check this too) */
+@media (prefers-reduced-motion: reduce) {
+  .track, .icon, .search, .dots button, .delete { transition: none; }
+  body.ready :is(.search, #pager, #dots, #widgets, #dock), body.jiggle .app .icon, .menu:popover-open, .toast:popover-open, #editor[open], #importer[open], #drawer::backdrop { animation: none; }
+  .dock { transition: none; }
+  .app { transition: none; } /* hover still enlarges, just without the spring */
+}
