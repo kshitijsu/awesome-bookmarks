@@ -118,33 +118,16 @@ function emojiTile(node, emoji = emojiFor(node)) {
 // straight away instead of flashing the globe again.
 const noIcon = new Set();
 
-// ---- Custom icons ----
-// A picture or emoji the user chose for a bookmark, in chrome.storage.local under "icons" ({ bookmark id: data URL or emoji }).
-// Kept on this computer: bookmark ids differ between computers, and pictures are too big for sync.
-const ICON_SIZE = 128, MAX_ICONS = 500, MAX_ICON_URL = 200_000;
-// Only a WebP this page encoded itself is ever used; anything else in storage is dropped.
-const ICON_RE = /^data:image\/webp;base64,[A-Za-z0-9+/]+=*$/;
+// ---- Custom icons ---- (stored and checked in settings.js)
+const ICON_SIZE = 128;
 let icons = new Map();
-// The first character someone typed, if it's an emoji (flags, skin tones and joined emoji count as one).
-const segmenter = new Intl.Segmenter();
-function oneEmoji(text) {
-  const first = segmenter.segment(String(text).trim())[Symbol.iterator]().next().value?.segment || '';
-  return first.length <= 16 && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(first) ? first : null;
-}
-const isPicture = v => v.length <= MAX_ICON_URL && ICON_RE.test(v);
-// Besides a picture or an emoji, a bookmark can be set to always use the site's own icon, or its letter.
-const KINDS = ['site', 'letter'];
-
-const cleanIcons = stored => new Map(Object.entries(stored && typeof stored === 'object' ? stored : {})
-  .filter(([id, v]) => /^\d{1,20}$/.test(id) && typeof v === 'string' && (KINDS.includes(v) || isPicture(v) || oneEmoji(v) === v))
-  .slice(0, MAX_ICONS));
-const readIcons = async () => cleanIcons((await chrome.storage.local.get('icons')).icons);
 
 // icon: a data URL or emoji to use, or null to go back to the default.
 async function setIcon(id, icon) {
   const next = await readIcons();
   if (icon) next.set(id, icon); else next.delete(id);
   await chrome.storage.local.set({ icons: Object.fromEntries(next) });
+  syncDrive(true);
 }
 
 // Decoding proves it's really an image; re-encoding keeps only the pixels, fitted (not cropped) into a square.
@@ -1245,3 +1228,4 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
 
 // If settings can't be read, carry on with the defaults rather than leave the page blank.
 applySettings().catch(console.error).then(load).finally(() => document.body.classList.add('ready'));
+syncDrive(); // pick up icons or a wallpaper changed on another computer

@@ -52,7 +52,7 @@ const isMeeting = e => e.status !== 'cancelled' && e.start?.dateTime
 
 async function refreshMeeting() {
   const s = await getSettings();
-  if (!s.calendar || !calendarConfigured()) {
+  if (!s.calendar || !googleConfigured()) {
     calendarState = 'off';
     meeting = null;
     return showMeeting();

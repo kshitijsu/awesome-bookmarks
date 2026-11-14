@@ -90,13 +90,21 @@
         </div>
       </div>
       <p id="backup-status" class="hint" role="status"></p>
+      <div class="group">
+        <div class="row">
+          <span class="row-text"><span>Sync icons and wallpaper with Google Drive</span><small id="drive-status" class="row-sub"></small></span>
+          <button id="drive-button" class="glass thin glass-button pill" type="button"></button>
+        </div>
+      </div>
+      <p class="hint">Your chosen bookmark icons and your own wallpaper image are kept in a hidden app folder in your Google Drive, so they follow you to every computer where you connect. The extension can't see anything else in your Drive. To remove the file and the access everywhere, go to your Google Account's third-party access page.</p>
       <p class="hint">Bookmarks, folders and the Dock are Chrome bookmarks, so Chrome already syncs them. Checking links asks for access to websites just for the check, and gives it back when done.</p>
     </section>
 
-    <p class="footnote">Changes and tasks save straight away and sync to other computers signed in to Chrome. Your own wallpaper image stays on this computer.</p>
+    <p class="footnote">Changes and tasks save straight away and sync to other computers signed in to Chrome. Your own wallpaper image and bookmark icons stay on this computer unless Google Drive sync is on.</p>
   </main>
 
   <script src="settings.js"></script>
+  <script src="drive-sync.js"></script>
   <script src="options.js"></script>
   <script src="dev-reload.js"></script>
 </body>

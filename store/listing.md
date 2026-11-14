@@ -45,7 +45,7 @@ Replaces the new tab page with the user's bookmarks shown as an app grid, plus s
 - **search:** sends the search box text to the user's default search engine when they choose to search the web.
 - **history (optional):** asked only when the user opens "Add from history", to list pages they can bookmark.
 - **topSites (optional):** asked only when the user turns on "Frequent sites".
-- **identity (optional):** asked only when the user connects Google Calendar, to sign in with read-only calendar access.
+- **identity (optional):** asked only when the user connects Google Calendar (read-only calendar access) or Drive sync (the drive.appdata scope: only the extension's own hidden file, used to sync custom icons and the wallpaper image).
 - **Host permissions http/https (optional):** asked only when the user runs "Check broken links", to see whether each bookmarked page still exists. Given back when the check ends.
 
 ## Remote code

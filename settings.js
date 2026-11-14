@@ -24,8 +24,8 @@ function sanitize(s) {
 
 // ---- Google Calendar sign-in ----
 // Chrome handles the sign-in and keeps the token; we never store it. The OAuth client ID lives in
-// manifest.json ("oauth2"); until a real one is filled in, the calendar can't be connected.
-const calendarConfigured = () => !/^YOUR_/.test(chrome.runtime.getManifest().oauth2?.client_id || 'YOUR_');
+// manifest.json ("oauth2"); until a real one is filled in, neither the calendar nor Drive can be connected.
+const googleConfigured = () => !/^YOUR_/.test(chrome.runtime.getManifest().oauth2?.client_id || 'YOUR_');
 
 // interactive: may show Google's consent screen (only from a click). Resolves to null when not signed in.
 async function calendarToken(interactive) {
@@ -42,7 +42,7 @@ async function connectCalendar() {
 async function disconnectCalendar() {
   const token = await calendarToken(false);
   if (token) await revokeToken(token);
-  await chrome.permissions.remove({ permissions: ['identity'] }).catch(() => {});
+  if (!(await getDrive()).on) await chrome.permissions.remove({ permissions: ['identity'] }).catch(() => {}); // Drive sync still needs it
 }
 async function revokeToken(token) {
   await chrome.identity.removeCachedAuthToken({ token });
@@ -52,6 +52,28 @@ async function revokeToken(token) {
     body: new URLSearchParams({ token }),
   }).catch(() => {}); // already revoked or offline: the cached token is gone either way
 }
+
+// ---- Custom icons ----
+// A picture or emoji the user chose for a bookmark, in chrome.storage.local under "icons" ({ bookmark id: data URL or emoji }).
+// Too big for Chrome Sync: Google Drive sync (drive-sync.js) carries them to other computers, by URL.
+const MAX_ICONS = 500, MAX_ICON_URL = 200_000;
+// Only a WebP this page encoded itself is ever used; anything else in storage is dropped.
+const ICON_RE = /^data:image\/webp;base64,[A-Za-z0-9+/]+=*$/;
+// The first character someone typed, if it's an emoji (flags, skin tones and joined emoji count as one).
+const segmenter = new Intl.Segmenter();
+function oneEmoji(text) {
+  const first = segmenter.segment(String(text).trim())[Symbol.iterator]().next().value?.segment || '';
+  return first.length <= 16 && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(first) ? first : null;
+}
+const isPicture = v => v.length <= MAX_ICON_URL && ICON_RE.test(v);
+// Besides a picture or an emoji, a bookmark can be set to always use the site's own icon, or its letter.
+const KINDS = ['site', 'letter'];
+
+const validIcon = v => typeof v === 'string' && (KINDS.includes(v) || isPicture(v) || oneEmoji(v) === v);
+const cleanIcons = stored => new Map(Object.entries(stored && typeof stored === 'object' ? stored : {})
+  .filter(([id, v]) => /^\d{1,20}$/.test(id) && validIcon(v))
+  .slice(0, MAX_ICONS));
+const readIcons = async () => cleanIcons((await chrome.storage.local.get('icons')).icons);
 
 const getSettings = async () => sanitize(await chrome.storage.sync.get(DEFAULTS));
 // Sync also holds tasks; only a change to a setting means settings changed.

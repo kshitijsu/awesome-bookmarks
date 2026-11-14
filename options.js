@@ -53,8 +53,31 @@ $('calendar-button').onclick = async () => {
   button.disabled = false;
 };
 
+// Drive sync is set up per computer (Chrome asks for sign-in on each), so its state lives in local storage.
+$('drive-button').onclick = async () => {
+  const button = $('drive-button');
+  button.disabled = true;
+  const drive = await getDrive();
+  if (drive.on && drive.error !== 'failed') await disconnectDrive(settings.calendar);
+  else if (!await connectDrive()) $('drive-status').textContent = "Couldn't connect. Make sure you're signed in to Chrome, then try again.";
+  button.disabled = false;
+};
+
+async function showDrive() {
+  const ready = googleConfigured();
+  const d = await getDrive();
+  $('drive-button').hidden = !ready;
+  $('drive-button').textContent = !d.on ? 'Connect' : d.error === 'failed' ? 'Reconnect' : 'Disconnect';
+  $('drive-status').textContent = !ready ? 'Needs a one-time setup: an OAuth client ID in manifest.json.'
+    : !d.on ? 'Not connected'
+    : d.error === 'too big' ? 'Too big to sync (over 5 MB). Use fewer pictures or a smaller wallpaper.'
+    : d.error === 'failed' ? "Couldn't sync. Make sure you're signed in to Chrome, then reconnect."
+    : d.dirty || !d.syncedAt ? 'Syncing…'
+    : `Synced ${new Date(d.syncedAt).toLocaleString()}`;
+}
+
 function showCalendar() {
-  const ready = calendarConfigured();
+  const ready = googleConfigured();
   $('calendar-button').hidden = !ready;
   $('calendar-button').textContent = settings.calendar ? 'Disconnect' : 'Connect';
   $('calendar-status').textContent = !ready
@@ -109,6 +132,7 @@ $('image').onchange = async () => {
     const dataUrl = await toDataUrl(await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 }));
     await chrome.storage.local.set({ wallpaperImage: dataUrl });
     await save({ wallpaper: 'custom' });
+    syncDrive(true);
   } catch (err) {
     console.error(err);
     showError(err instanceof RangeError
@@ -120,6 +144,7 @@ $('image').onchange = async () => {
 $('remove-image').onclick = async () => {
   await chrome.storage.local.remove('wallpaperImage'); // the storage change refreshes the page
   save(s => (s.wallpaper === 'custom' ? { wallpaper: DEFAULTS.wallpaper } : {}));
+  syncDrive(true);
 };
 
 // Built once: rebuilding on every save would throw away keyboard focus on the switch just toggled.
@@ -155,6 +180,7 @@ async function refresh() {
   $('clock').checked = settings.clock;
   $('frequent').checked = settings.frequent;
   showCalendar();
+  await showDrive();
   for (const input of document.querySelectorAll('input[name="wallpaper"]')) {
     input.checked = input.value === (settings.wallpaper === 'custom' && !image ? DEFAULTS.wallpaper : settings.wallpaper);
   }
@@ -348,6 +374,6 @@ document.addEventListener('keydown', e => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (settingsChanged(changes, area) || 'wallpaperImage' in changes) refresh();
+  if (settingsChanged(changes, area) || 'wallpaperImage' in changes || 'drive' in changes) refresh();
 });
 renderFolders().catch(console.error).finally(refresh);

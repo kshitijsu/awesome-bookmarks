@@ -184,6 +184,35 @@ try {
   check('Only a single emoji is accepted from storage', await ev(`[oneEmoji('👍🏽'), oneEmoji('🇮🇳'), oneEmoji('👨‍👩‍👧'), oneEmoji('<b>x</b>'), oneEmoji('abc'), oneEmoji('')]`),
     ['👍🏽', '🇮🇳', '👨‍👩‍👧', null, null, null]);
 
+  // ---- Google Drive sync (Drive faked in the page: no network, no sign-in) ----
+  await ev(`(async () => {
+    const o = (await chrome.bookmarks.getTree())[0].children[1].id;
+    window.dA = (await chrome.bookmarks.create({ parentId: o, title: 'Drive A', url: 'https://drive-a.example/' })).id;
+    window.dB = (await chrome.bookmarks.create({ parentId: o, title: 'Drive B', url: 'https://drive-b.example/' })).id;
+    await setIcon(dA, '🚀');
+    window.remote = { modifiedTime: 't1', body: JSON.stringify({ icons: { 'https://drive-b.example/': '🎸', 'https://elsewhere.example/': '🌍', 'https://drive-a.example/': '<b>' } }) };
+    window.realFetch = fetch; window.realToken = driveToken;
+    driveToken = async () => 'test-token';
+    window.fetch = async (url, init = {}) => {
+      const p = new URL(url).pathname, m = init.method || 'GET';
+      if (p === '/drive/v3/files' && m === 'GET') return Response.json({ files: [{ id: 'f1', modifiedTime: remote.modifiedTime }] });
+      if (p === '/drive/v3/files/f1') return new Response(remote.body);
+      if (p === '/upload/drive/v3/files/f1' && m === 'PATCH') { remote = { modifiedTime: 't2', body: init.body }; return Response.json({ modifiedTime: 't2' }); }
+      throw new Error('unexpected ' + m + ' ' + p);
+    };
+    await setDrive({ on: true, dirty: true, syncedAt: '' });
+    await syncDrive();
+  })()`);
+  check('Drive: first sync merges both ways, by URL', await ev(`(async () => ({ local: (r => [r[dA], r[dB]])(Object.fromEntries(await readIcons())), sent: (i => [i['https://elsewhere.example/'], i['https://drive-a.example/'], i['https://drive-b.example/']])(JSON.parse(remote.body).icons), state: (({ dirty, syncedAt, error }) => ({ dirty, syncedAt, error }))(await getDrive()) }))()`),
+    { local: ['🚀', '🎸'], sent: ['🌍', '🚀', '🎸'], state: { dirty: false, syncedAt: 't2', error: '' } });
+  check('Drive: a change on another computer replaces this one', await ev(`(async () => {
+    remote = { modifiedTime: 't3', body: JSON.stringify({ icons: { 'https://drive-a.example/': '🍕' } }) };
+    await setDrive({ checkedAt: 0 }); await syncDrive();
+    const r = Object.fromEntries(await readIcons()); return [r[dA], r[dB] ?? null, (await getDrive()).syncedAt];
+  })()`), ['🍕', null, 't3']);
+  await ev(`(async () => { fetch = realFetch; driveToken = realToken; await chrome.storage.local.remove('drive');
+    await chrome.bookmarks.remove(dA); await chrome.bookmarks.remove(dB); })()`);
+
   // ---- Security: chrome:// action pages ----
   check('chrome:// quit/crash pages are refused, normal ones allowed', await ev(`['chrome://quit', 'chrome://restart/', 'CHROME://crash', 'chrome://memory-pressure-critical', 'javascript:alert(1)',
     'chrome://settings', 'https://example.com/chrome://quit'].map(isSafe)`), [false, false, false, false, false, true, true]);
