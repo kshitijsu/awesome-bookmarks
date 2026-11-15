@@ -1,7 +1,9 @@
-// Widgets on the new tab: a clock, the next meeting from Google Calendar, and a row of frequent sites.
+// Widgets on the new tab: a clock with a greeting, the next meeting from Google Calendar, and a row of frequent sites.
 const clockEl = document.getElementById('clock');
 const meetingEl = document.getElementById('meeting');
-const timeOf = d => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+let hour12; // undefined: the computer's own 12/24-hour style
+let userName = '';
+const timeOf = d => d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12 });
 
 // ---- Clock ----
 
@@ -9,6 +11,8 @@ function tick() {
   const now = new Date();
   const zone = Intl.DateTimeFormat().resolvedOptions().timeZone; // read each time: it changes when travelling
   const offset = new Intl.DateTimeFormat([], { timeZoneName: 'short' }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value;
+  const h = now.getHours(), part = h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 17 ? 'afternoon' : 'evening';
+  document.getElementById('greeting').textContent = `Good ${part}${userName ? `, ${userName}` : ''}`;
   document.getElementById('clock-time').textContent = timeOf(now);
   document.getElementById('clock-time').dateTime = now.toISOString();
   document.getElementById('clock-sub').textContent =
@@ -16,6 +20,12 @@ function tick() {
   if (meeting) showMeeting(); // keep "in 12 min" current
   if (meeting && now >= meeting.end) refreshMeeting(); // it's over: look for the next one
 }
+
+// Clicking the time switches between 12- and 24-hour (meeting times follow), synced like other settings.
+document.getElementById('clock-toggle').onclick = () => {
+  const now12 = new Intl.DateTimeFormat([], { hour: 'numeric', hour12 }).resolvedOptions().hour12;
+  chrome.storage.sync.set({ hour12: !now12 }).catch(console.error);
+};
 
 // Tick exactly on the minute, so the display changes when the time does.
 setTimeout(() => { tick(); setInterval(tick, 60_000); }, 60_000 - (Date.now() % 60_000));
@@ -152,6 +162,9 @@ async function showFrequent(on) {
 async function applyWidgets() {
   const s = await getSettings();
   clockEl.hidden = !s.clock;
+  hour12 = s.hour12 ?? undefined;
+  userName = s.name;
+  tick();
   showFrequent(s.frequent).catch(console.error);
   refreshMeeting();
 }

@@ -30,6 +30,7 @@ $('rows').onchange = () => save({ rows: Number($('rows').value) });
 $('blur').onchange = () => save({ blur: $('blur').checked });
 $('emoji').onchange = () => save({ emoji: $('emoji').checked });
 $('clock').onchange = () => save({ clock: $('clock').checked });
+$('name').onchange = () => save({ name: $('name').value });
 // Reading the most-visited list is an optional permission: Chrome asks the first time it's switched on.
 $('frequent').onchange = async () => {
   const on = $('frequent').checked && await chrome.permissions.request({ permissions: ['topSites'] }).catch(() => false);
@@ -179,6 +180,7 @@ async function refresh() {
   $('emoji').checked = settings.emoji;
   $('clock').checked = settings.clock;
   $('frequent').checked = settings.frequent;
+  if (document.activeElement !== $('name')) $('name').value = settings.name;
   showCalendar();
   await showDrive();
   for (const input of document.querySelectorAll('input[name="wallpaper"]')) {
@@ -331,13 +333,13 @@ $('check-links').onclick = async () => {
 const backupStatus = text => { $('backup-status').textContent = text; };
 
 $('backup').onclick = async () => {
-  const data = { app: 'awesome-bookmarks', version: 1, settings: await getSettings(), tasks: await getTasks() };
+  const data = { app: 'awesome-bookmarks', version: 1, settings: await getSettings(), tasks: await getTasks(), notes: await getNotes() };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
   a.download = `awesome-bookmarks-backup-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  backupStatus(`Saved ${data.tasks.length} tasks and your settings.`);
+  backupStatus(`Saved ${data.tasks.length} tasks, your notes and your settings.`);
 };
 
 // A backup file is untrusted input: size-capped, parsed as JSON only, and every value re-checked.
@@ -353,7 +355,7 @@ $('restore').onchange = async () => {
   } catch {
     return backupStatus("That file isn't an Awesome bookmarks backup.");
   }
-  if (!confirm('Replace your settings and tasks with the ones in this backup?')) return;
+  if (!confirm('Replace your settings, tasks and notes with the ones in this backup?')) return;
   try {
     const tasks = cleanTasks(data.tasks);
     // Frequent sites needs a permission this computer may not have given.
@@ -364,7 +366,8 @@ $('restore').onchange = async () => {
     const keep = new Set(tasks.map(t => t.id));
     await removeTasks(old.filter(t => !keep.has(t.id)));
     await save(sanitize({ ...DEFAULTS, ...data.settings, frequent }));
-    backupStatus(`Restored ${tasks.length} tasks and your settings.`);
+    if (typeof data.notes === 'string') await chrome.storage.sync.set({ notes: data.notes.slice(0, MAX_NOTES) }); // older backups have none: keep yours
+    backupStatus(`Restored ${tasks.length} tasks, your notes and your settings.`);
   } catch (err) {
     console.error(err);
     backupStatus("Couldn't restore that backup. Please try again.");

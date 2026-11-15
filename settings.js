@@ -3,8 +3,13 @@
 // so it stays in chrome.storage.local on this computer.
 const WALLPAPERS = { meadow: 'Meadow', dusk: 'Dusk', ocean: 'Ocean', sunrise: 'Sunrise', graphite: 'Graphite', custom: 'Your image' };
 // cols/rows 0 = automatic. emoji: an emoji for each bookmark instead of the site's own icon. frequent: the most-visited row (needs the optional topSites permission). calendar: show the next-meeting widget (switched on by connecting, never by default).
-const DEFAULTS = { cols: 0, rows: 0, wallpaper: 'meadow', blur: true, emoji: true, hiddenFolders: [], clock: true, calendar: false, frequent: false, view: 'grid' };
+const DEFAULTS = { cols: 0, rows: 0, wallpaper: 'meadow', blur: true, emoji: true, hiddenFolders: [], clock: true, calendar: false, frequent: false, view: 'grid', hour12: null, name: '' };
 const LIMITS = { cols: [3, 10], rows: [2, 8] };
+
+const MAX_NAME = 40;
+// Plain text only: control and formatting characters (e.g. right-to-left overrides) are dropped.
+const cleanText = (v, max) => typeof v === 'string' ? v.replace(/\p{C}/gu, '').trim().slice(0, max) : '';
+const cleanName = v => cleanText(v, MAX_NAME);
 
 // Synced data can come from another computer or an older version: accept only known values.
 function sanitize(s) {
@@ -20,6 +25,8 @@ function sanitize(s) {
     calendar: s.calendar === true,
     frequent: s.frequent === true,
     view: s.view === 'list' ? 'list' : 'grid',
+    hour12: typeof s.hour12 === 'boolean' ? s.hour12 : null,
+    name: cleanName(s.name),
   };
 }
 
@@ -103,6 +110,11 @@ async function getTasks() {
 const taskEntries = list => Object.fromEntries(list.map(t => [TASK_KEY + t.id, { text: t.text, done: t.done, at: t.at }]));
 const saveTasks = list => chrome.storage.sync.set(taskEntries(list));
 const removeTasks = list => chrome.storage.sync.remove(list.map(t => TASK_KEY + t.id));
+
+// ---- Notes ----
+// One synced key; 2,000 characters stays under sync's 8 KB-per-item limit even in 3-byte characters.
+const MAX_NOTES = 2000;
+const getNotes = async () => { const { notes } = await chrome.storage.sync.get('notes'); return typeof notes === 'string' ? notes.slice(0, MAX_NOTES) : ''; };
 
 // Only ever a JPEG the settings page encoded itself; anything else is ignored, never put into CSS.
 const IMAGE_RE = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/;

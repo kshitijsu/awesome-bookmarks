@@ -51,7 +51,10 @@ body.view-list #view-toggle .show-grid { display: block; }
 #meeting { grid-template-columns: minmax(0, 1fr) auto; column-gap: 14px; }
 #meeting > :not(.join) { grid-column: 1; }
 #meeting > .join { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin: 0; }
-.clock-time { font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.clock-time { all: unset; cursor: pointer; border-radius: 6px; font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.clock-time:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.widget-sub { max-width: 100%; overflow: hidden; color: var(--text-2); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.greeting { font-size: 12.5px; }
 .widget-label { color: var(--text-2); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
 .widget-title {
   max-width: 100%;
@@ -434,6 +437,11 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
 .tasks-add { width: 100%; height: 36px; margin: 0; }
 .tasks-add:focus-within { width: 100%; }
 .tasks-list { flex: 1; min-height: 0; margin: 0; padding: 0; overflow-y: auto; list-style: none; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .25) transparent; }
+.notes-label { margin: 4px 0 -6px 4px; color: var(--text-2); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.notes { flex: none; height: 120px; padding: 10px 12px; border: 0; border-radius: var(--radius-s); color: var(--text); font: inherit; font-size: 13.5px; line-height: 1.45; resize: vertical; outline: none; }
+.notes::placeholder { color: var(--text-3); }
+.notes:focus-visible { box-shadow: var(--focus-ring); }
+.notes-status { margin-top: -8px; min-height: 1em; padding-left: 4px; color: var(--text-3); font-size: 11px; }
 .tasks-list:empty::after { content: "No tasks yet"; display: block; padding: 24px 0; color: var(--text-3); text-align: center; }
 .task { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 8px; border-radius: var(--radius-s); }
 .task:hover, .task:focus-within { background: rgba(255, 255, 255, .08); }

@@ -1323,6 +1323,8 @@ document.addEventListener('keydown', e => {
     else document.activeElement?.blur();
     return;
   }
+  // "/" jumps to the search field (without typing a slash, which every address contains).
+  if (e.key === '/' && !drawer.open && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); search.focus(); return; }
   // Start typing anywhere to search, like Launchpad.
   if (!drawer.open && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) search.focus();
 });

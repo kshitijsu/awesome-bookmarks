@@ -11,7 +11,8 @@
 <body>
   <div id="widgets">
     <div id="clock" class="widget glass thin">
-      <time id="clock-time" class="clock-time"></time>
+      <span id="greeting" class="widget-sub greeting"></span>
+      <button id="clock-toggle" class="clock-time" type="button" title="Switch between 12- and 24-hour time"><time id="clock-time"></time></button>
       <span id="clock-sub" class="widget-sub"></span>
     </div>
     <div class="widgets-end">
@@ -33,7 +34,7 @@
   </div>
   <label class="search glass thin">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-    <input id="search" type="search" placeholder="Search" autocomplete="off" aria-label="Search bookmarks">
+    <input id="search" type="search" placeholder="Search" autocomplete="off" aria-label="Search bookmarks" aria-keyshortcuts="/" title="Search (/)">
   </label>
   <nav id="frequent" class="frequent glass thin" aria-label="Frequent sites" hidden></nav>
   <button id="web-search" class="glass thin glass-button pill web-search" type="button" title="Shift+Enter" hidden></button>
@@ -84,6 +85,9 @@
     </form>
     <ul id="tasks-list" class="tasks-list" aria-label="Your tasks"></ul>
     <button id="tasks-clear" class="glass thin glass-button pill" type="button" hidden>Clear completed</button>
+    <label class="notes-label" for="notes">Notes</label>
+    <textarea id="notes" class="notes glass thin" maxlength="2000" placeholder="Jot something down" aria-describedby="notes-status"></textarea>
+    <span id="notes-status" class="notes-status" role="status"></span>
   </aside>
 
   <!-- Add / edit a bookmark, rename a folder -->

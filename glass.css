@@ -124,7 +124,7 @@
   rotate: 45deg;
   pointer-events: none;
 }
-select {
+select, .text-input {
   appearance: none;
   min-width: 128px;
   padding: 6px 34px 6px 14px;
@@ -138,8 +138,10 @@ select {
   cursor: pointer;
   transition: background var(--fast), box-shadow var(--fast);
 }
+.text-input { width: 160px; padding: 6px 14px; cursor: text; }
+.text-input::placeholder { color: var(--text-3); }
 select:hover { background: linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .16)); }
-select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+select:focus-visible, .text-input:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 select option { color: #000; }
 
 /* No backdrop-filter (older browsers): solid, still-readable surfaces */

@@ -254,6 +254,31 @@ try {
     return [inList === before, after === before];
   })()`), [true, true]);
   check('Back to icons', await ev(`[document.getElementById('list').hidden, getComputedStyle(document.getElementById('pager')).display !== 'none']`), [true, true]);
+  check('Greeting shows your name, as plain text only', await ev(`(async () => {
+    await chrome.storage.sync.set({ name: '  Ada‮<b>x</b>  ' }); await new Promise(r => setTimeout(r, 300));
+    const g = document.getElementById('greeting'), r = [/^Good (morning|afternoon|evening), Ada<b>x<\\/b>$/.test(g.textContent), !g.querySelector('b')];
+    await chrome.storage.sync.remove('name'); await new Promise(r => setTimeout(r, 300));
+    return [...r, /^Good (morning|afternoon|evening)$/.test(g.textContent)];
+  })()`), [true, true, true]);
+  check('"/" jumps to search without typing a slash', await ev(`(() => { document.activeElement?.blur();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true }));
+    const r = [document.activeElement === search, search.value]; search.blur(); return r; })()`), [true, '']);
+  check('Notes save after a pause and follow other tabs', await ev(`(async () => {
+    const n = document.getElementById('notes'); n.focus(); n.value = 'Call the bank'; n.dispatchEvent(new Event('input'));
+    await new Promise(r => setTimeout(r, 1900)); const saved = (await chrome.storage.sync.get('notes')).notes; n.blur();
+    await chrome.storage.sync.set({ notes: 'From another tab' }); await new Promise(r => setTimeout(r, 300)); const followed = n.value;
+    await chrome.storage.sync.remove('notes'); await new Promise(r => setTimeout(r, 300));
+    return [saved, followed, document.getElementById('notes-status').textContent];
+  })()`), ['Call the bank', 'From another tab', 'Saved']);
+  check('Clicking the clock switches 12/24-hour and back', await ev(`(async () => {
+    const b = document.getElementById('clock-toggle'), is12 = () => /am|pm/i.test(document.getElementById('clock-time').textContent);
+    const first = is12(); b.click(); await new Promise(r => setTimeout(r, 300)); const flipped = is12();
+    const saved = (await chrome.storage.sync.get('hour12')).hour12;
+    b.click(); await new Promise(r => setTimeout(r, 300)); const back = is12();
+    await chrome.storage.sync.remove('hour12'); await new Promise(r => setTimeout(r, 200));
+    return [flipped !== first, saved === flipped, back === first];
+  })()`), [true, true, true]);
+
   // ---- Security: chrome:// action pages ----
   check('chrome:// quit/crash pages are refused, normal ones allowed', await ev(`['chrome://quit', 'chrome://restart/', 'CHROME://crash', 'chrome://memory-pressure-critical', 'javascript:alert(1)',
     'chrome://settings', 'https://example.com/chrome://quit'].map(isSafe)`), [false, false, false, false, false, true, true]);
@@ -298,7 +323,7 @@ try {
   check('A hostile backup is cleaned', await restore(JSON.stringify({ app: 'awesome-bookmarks', version: 1,
     settings: JSON.parse('{"__proto__":{"x":1},"cols":99,"wallpaper":"<img src=x>"}'),
     tasks: [{ id: '../evil', text: 'bad id' }, { id: 'ok1', text: '  Restored  ', done: 'yes', at: 1 }, { id: 'ok2', text: 'Done one', done: true, at: 2 }] })),
-    { status: 'Restored 2 tasks and your settings.', tasks: ['Restored', 'Done one [x]'], cols: 0, wallpaper: 'meadow', polluted: null });
+    { status: 'Restored 2 tasks, your notes and your settings.', tasks: ['Restored', 'Done one [x]'], cols: 0, wallpaper: 'meadow', polluted: null });
   expectErrors = true; // the forced failure below logs on purpose
   check('A restore that fails to save keeps the current tasks', await ev(`(async () => {
     const real = chrome.storage.sync.set.bind(chrome.storage.sync);

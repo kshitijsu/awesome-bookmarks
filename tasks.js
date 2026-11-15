@@ -113,6 +113,24 @@ chrome.storage.onChanged.addListener((changes, area) => {
   reloadTasks().catch(console.error);
 });
 
+// ---- Notes ----
+// Saved once typing pauses (sync allows about one write every two seconds), and when leaving the box.
+const notesEl = document.getElementById('notes');
+const notesStatus = document.getElementById('notes-status');
+let notesTimer = null;
+const saveNotes = () => {
+  clearTimeout(notesTimer);
+  notesTimer = null;
+  store(chrome.storage.sync.set({ notes: notesEl.value.slice(0, MAX_NOTES) }).then(() => { notesStatus.textContent = 'Saved'; }));
+};
+notesEl.addEventListener('input', () => { notesStatus.textContent = ''; clearTimeout(notesTimer); notesTimer = setTimeout(saveNotes, 1500); });
+notesEl.addEventListener('blur', () => { if (notesTimer) saveNotes(); });
+// Changed in another tab or on another computer: show it, unless you're typing here.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && 'notes' in changes && document.activeElement !== notesEl) getNotes().then(n => { notesEl.value = n; }).catch(console.error);
+});
+getNotes().then(n => { notesEl.value = n; }).catch(console.error);
+
 (async () => {
   // Version 1.3 kept tasks on this computer only: move them into sync once.
   const { tasks: old, tasksOpen } = await chrome.storage.local.get(['tasks', 'tasksOpen']);

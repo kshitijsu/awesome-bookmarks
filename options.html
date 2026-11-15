@@ -48,6 +48,7 @@
       <div class="group">
         <label class="row"><span>Clock</span><input id="clock" class="switch" type="checkbox" role="switch"></label>
         <label class="row"><span>Frequent sites</span><input id="frequent" class="switch" type="checkbox" role="switch"></label>
+        <label class="row"><span>Your name, for the greeting</span><input id="name" class="text-input" maxlength="40" autocomplete="given-name" spellcheck="false" placeholder="Optional"></label>
         <div class="row">
           <span class="row-text"><span>Next meeting from Google Calendar</span><small id="calendar-status" class="row-sub"></small></span>
           <button id="calendar-button" class="glass thin glass-button pill" type="button"></button>
@@ -82,7 +83,7 @@
       <h2>Backup</h2>
       <div class="group">
         <div class="row">
-          <span class="row-text"><span>Settings and tasks</span><small class="row-sub">Save them to a file, or restore from one</small></span>
+          <span class="row-text"><span>Settings, tasks and notes</span><small class="row-sub">Save them to a file, or restore from one</small></span>
           <span class="actions">
             <label class="glass thin glass-button pill">Restore…<input id="restore" type="file" accept=".json,application/json" hidden></label>
             <button id="backup" class="glass thin glass-button pill" type="button">Back up</button>
