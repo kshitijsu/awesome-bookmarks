@@ -490,6 +490,8 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
 .menu {
   inset: auto;
   min-width: 190px;
+  max-height: min(420px, calc(100vh - 16px)); /* "Move to…" can list many folders */
+  overflow-y: auto;
   margin: 0;
   padding: 5px;
   border: 0;

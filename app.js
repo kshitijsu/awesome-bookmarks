@@ -836,10 +836,12 @@ document.addEventListener('contextmenu', e => {
   const dockItem = node.parentId === dock?.id
     ? ['Remove from Dock', () => chrome.bookmarks.move(node.id, { parentId: bar.id }).catch(console.error)]
     : ['Keep in Dock', () => toDock(node).catch(err => { console.error(err); load(); })];
+  const moveItem = ['Move to…', () => showMenu(moveTargets(node), x, y)];
   if (node.url) {
     return showMenu([
       ['Open in new tab', () => openViaApi(node.url, true)],
       dockItem,
+      moveItem,
       ['Edit…', () => editBookmark(node)],
       ['Change icon…', () => { editBookmark(node); (iconChoices.querySelector('[aria-selected="true"]') || iconChoices.firstChild)?.focus(); }],
       ['Copy link', () => navigator.clipboard.writeText(node.url).catch(console.error)],
@@ -849,9 +851,22 @@ document.addEventListener('contextmenu', e => {
   const ownFolder = node.parentId !== rootId; // Chrome's root folders can't be renamed or deleted
   showMenu([
     ['Open', () => openFolder(node, el)],
-    ...(ownFolder ? [dockItem, ['Rename…', () => renameFolderNode(node)], ['Delete folder', () => removeOrReload(node), true]] : []),
+    ...(ownFolder ? [dockItem, moveItem, ['Rename…', () => renameFolderNode(node)], ['Delete folder', () => removeOrReload(node), true]] : []),
   ], x, y);
 });
+
+// "Move to…": every folder in the Bookmarks bar and Other bookmarks, indented by depth — the keyboard's
+// way to do what dragging does. Not the one it's already in, not the Dock, not itself or its own subfolders.
+function moveTargets(node) {
+  const items = [];
+  const walk = (f, depth) => {
+    if (f.id === node.id || f.id === dock?.id) return;
+    if (f.id !== node.parentId) items.push([`${' '.repeat(depth)}${f.title || 'Folder'}`, () => chrome.bookmarks.move(node.id, { parentId: f.id }).catch(console.error)]);
+    for (const c of f.children || []) if (!c.url) walk(c, depth + 1);
+  };
+  for (const root of [bar, other]) if (root) walk(root, 0);
+  return items.length ? items : [['No other folders', () => {}]];
+}
 
 async function toDock(node) {
   const oldParent = node.parentId;

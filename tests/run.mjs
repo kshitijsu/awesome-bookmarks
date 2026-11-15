@@ -269,6 +269,19 @@ try {
   check('"/" jumps to search without typing a slash', await ev(`(() => { document.activeElement?.blur();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true }));
     const r = [document.activeElement === search, search.value]; search.blur(); return r; })()`), [true, '']);
+  check('"Move to…" in the menu lists folders and moves the bookmark', await ev(`(async () => {
+    const b = (await chrome.bookmarks.getTree())[0].children[0].id, wait = ms => new Promise(r => setTimeout(r, ms));
+    const f = await chrome.bookmarks.create({ parentId: b, title: 'Move here', index: 0 });
+    await chrome.bookmarks.create({ parentId: f.id, title: 'Keeps it', url: 'https://keeps.example/' });
+    const m = await chrome.bookmarks.create({ parentId: b, title: 'Mover', url: 'https://mover.example/', index: 1 }); await wait(600);
+    document.querySelector('#pager .app[data-id="' + m.id + '"]').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 200, clientY: 200 }));
+    const item = label => [...document.querySelectorAll('#menu button')].find(x => x.textContent.trim() === label);
+    item('Move to…').click(); await wait(100);
+    const offered = !!item('Move here') && !item('Dock');
+    item('Move here').click(); await wait(500);
+    const moved = (await chrome.bookmarks.get(m.id))[0].parentId === f.id;
+    await chrome.bookmarks.removeTree(f.id); await wait(400);
+    return [offered, moved]; })()`), [true, true]);
   check('Keyboard: Escape closes Tasks back to its button; a folder opens on its first bookmark', await ev(`(async () => {
     const t = document.getElementById('tasks-toggle'); t.click(); await new Promise(r => setTimeout(r, 200));
     document.getElementById('tasks-new').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
