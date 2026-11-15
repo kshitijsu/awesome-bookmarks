@@ -755,6 +755,8 @@ body.ready .list { animation: launch .5s var(--ease); }
 .list-card summary::before { content: ""; width: 6px; height: 6px; margin: 0 4px 2px 2px; border: solid var(--text-2); border-width: 0 1.5px 1.5px 0; rotate: 45deg; transition: rotate var(--medium) var(--ease); }
 .list-card details:not([open]) summary::before { rotate: -45deg; }
 .list-card summary:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* About 8 rows, then the folder scrolls inside its card; the half-visible next row shows there's more */
+.list-rows { max-height: calc(8.5 * var(--list-row, 50px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .3) transparent; }
 .list-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .list-count { color: var(--text-3); font-variant-numeric: tabular-nums; }
 .list-row {

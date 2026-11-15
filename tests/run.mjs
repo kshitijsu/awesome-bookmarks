@@ -237,6 +237,12 @@ try {
   })()`), { pagerHidden: 'none', folder: ['List folder', ['Inside']], site: ['gitlab.example', ['Repo one', 'Repo two']], single: true, label: 'Show as icons' });
   check('List view: a folded card stays folded after a reload', await ev(`(async () => { const d = [...document.querySelectorAll('#list details')].find(d => d.querySelector('.list-title').textContent === 'List folder');
     d.open = false; await new Promise(r => setTimeout(r, 200)); await load(); return [...document.querySelectorAll('#list details')].find(d => d.querySelector('.list-title').textContent === 'List folder').open; })()`), false);
+  check('List view: a long folder scrolls inside its card, title and "Add link" stay put', await ev(`(async () => {
+    for (let i = 0; i < 12; i++) await chrome.bookmarks.create({ parentId: lf.id, title: 'More ' + i, url: 'https://more' + i + '.example/' });
+    await new Promise(r => setTimeout(r, 500));
+    const d = [...document.querySelectorAll('#list details')].find(d => d.querySelector('.list-title').textContent === 'List folder'); d.open = true;
+    await new Promise(r => setTimeout(r, 200)); const rows = d.querySelector('.list-rows');
+    return [rows.children.length, rows.scrollHeight > rows.clientHeight, !rows.contains(d.querySelector('.list-add'))]; })()`), [13, true, true]);
   check('List view: searching shows tiles', await ev(`(async () => { search.value = 'repo'; search.dispatchEvent(new Event('input')); await new Promise(r => setTimeout(r, 200));
     const r = [document.getElementById('list').hidden, document.querySelectorAll('#pager .app').length]; search.value = ''; search.dispatchEvent(new Event('input')); return r; })()`), [true, 2]);
   await ev(`(async () => { document.getElementById('view-toggle').click(); await new Promise(r => setTimeout(r, 600)); await chrome.bookmarks.removeTree(lf.id);

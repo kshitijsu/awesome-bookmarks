@@ -1198,7 +1198,11 @@ function listCard(key, title, parent, children) {
   add.className = 'list-add';
   add.textContent = '+ Add link';
   add.onclick = () => addBookmark(parent);
-  details.append(summary, ...children.map(listRow), add);
+  // Long folders scroll inside the card, so the title and "Add link" stay in view.
+  const rows = document.createElement('div');
+  rows.className = 'list-rows';
+  rows.append(...children.map(listRow));
+  details.append(summary, rows, add);
   card.append(details);
   return card;
 }
