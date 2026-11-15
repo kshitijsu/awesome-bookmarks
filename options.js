@@ -68,7 +68,7 @@ async function showDrive() {
   const d = await getDrive();
   $('drive-button').hidden = !ready;
   $('drive-button').textContent = !d.on ? 'Connect' : d.error === 'failed' ? 'Reconnect' : 'Disconnect';
-  $('drive-status').textContent = !ready ? 'Needs a one-time setup: an OAuth client ID in manifest.json.'
+  $('drive-status').textContent = !ready ? 'Needs a one-time setup: a Google OAuth client ID (see .env.example).'
     : !d.on ? 'Not connected'
     : d.error === 'too big' ? 'Too big to sync (over 5 MB). Use fewer pictures or a smaller wallpaper.'
     : d.error === 'failed' ? "Couldn't sync. Make sure you're signed in to Chrome, then reconnect."
@@ -81,7 +81,7 @@ function showCalendar() {
   $('calendar-button').hidden = !ready;
   $('calendar-button').textContent = settings.calendar ? 'Disconnect' : 'Connect';
   $('calendar-status').textContent = !ready
-    ? 'Needs a one-time setup: an OAuth client ID in manifest.json.'
+    ? 'Needs a one-time setup: a Google OAuth client ID (see .env.example).'
     : settings.calendar ? 'Connected' : 'Not connected';
 }
 

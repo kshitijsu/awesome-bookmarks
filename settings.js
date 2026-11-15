@@ -24,7 +24,7 @@ function sanitize(s) {
 
 // ---- Google Calendar sign-in ----
 // Chrome handles the sign-in and keeps the token; we never store it. The OAuth client ID lives in
-// manifest.json ("oauth2"); until a real one is filled in, neither the calendar nor Drive can be connected.
+// manifest.json ("oauth2"), which configure.sh writes from .env; until a real one is filled in, neither the calendar nor Drive can be connected.
 const googleConfigured = () => !/^YOUR_/.test(chrome.runtime.getManifest().oauth2?.client_id || 'YOUR_');
 
 // interactive: may show Google's consent screen (only from a click). Resolves to null when not signed in.

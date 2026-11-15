@@ -1,4 +1,5 @@
 // End-to-end checks in a real Chrome, with the extension loaded unpacked into a throwaway profile.
+//   ./configure.sh   (once: writes manifest.json)
 //   CHROME_BIN="/path/to/Chrome for Testing" node tests/run.mjs
 // Needs Chrome for Testing (or Chromium): branded Chrome ignores --load-extension.
 // Exits non-zero when any check fails.
@@ -14,6 +15,7 @@ import http from 'node:http';
 const EXT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const BIN = process.env.CHROME_BIN
   || join(homedir(), 'Library/Caches/ms-playwright/chromium-1248/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing');
+if (!existsSync(join(EXT, 'manifest.json'))) { console.error('No manifest.json: run ./configure.sh first.'); process.exit(2); }
 if (!existsSync(BIN)) { console.error(`Chrome not found at ${BIN}. Set CHROME_BIN.`); process.exit(2); }
 // An unpacked extension's ID comes from its folder path: SHA-256, first 32 hex digits mapped 0-f → a-p.
 const ID = [...createHash('sha256').update(EXT).digest('hex').slice(0, 32)].map(c => String.fromCharCode(97 + parseInt(c, 16))).join('');

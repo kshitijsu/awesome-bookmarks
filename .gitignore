@@ -1,5 +1,9 @@
 # Built store packages (pack.sh)
 *.zip
 
+# Local settings and the manifest configure.sh writes from them
+.env
+manifest.json
+
 # macOS
 .DS_Store
