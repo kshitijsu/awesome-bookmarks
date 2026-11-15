@@ -418,6 +418,17 @@ try {
     settings: JSON.parse('{"__proto__":{"x":1},"cols":99,"wallpaper":"<img src=x>"}'),
     tasks: [{ id: '../evil', text: 'bad id' }, { id: 'ok1', text: '  Restored  ', done: 'yes', at: 1 }, { id: 'ok2', text: 'Done one', done: true, at: 2 }] })),
     { status: 'Restored 2 tasks, your notes and your settings.', tasks: ['Restored', 'Done one [x]'], cols: 0, wallpaper: 'meadow', polluted: null });
+  check('Restore warns with the counts and first downloads what you have now', await ev(`(async () => {
+    let asked = '', saved = null; const orig = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () { saved = { name: this.download, href: this.href }; };
+    window.confirm = m => { asked = m; return true; };
+    const dt = new DataTransfer(); dt.items.add(new File([JSON.stringify({ app: 'awesome-bookmarks', settings: {}, tasks: [{ id: 'r1', text: 'One' }] })], 'b.json'));
+    const i = document.getElementById('restore'); i.files = dt.files; i.dispatchEvent(new Event('change'));
+    await new Promise(r => setTimeout(r, 900)); HTMLAnchorElement.prototype.click = orig;
+    const before = JSON.parse(await (await fetch(saved.href)).text());
+    return [asked.includes('your 2 tasks with its 1'), asked.includes('your notes stay'), /^awesome-bookmarks-before-restore-/.test(saved.name), before.tasks.length,
+      (await getTasks()).map(t => t.text)]; })()`), [true, true, true, 2, ['One']]);
+  await restore(JSON.stringify({ app: 'awesome-bookmarks', version: 1, settings: {}, tasks: [{ id: 'ok1', text: 'Restored', at: 1 }, { id: 'ok2', text: 'Done one', done: true, at: 2 }] }));
   expectErrors = true; // the forced failure below logs on purpose
   check('A restore that fails to save keeps the current tasks', await ev(`(async () => {
     const real = chrome.storage.sync.set.bind(chrome.storage.sync);

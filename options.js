@@ -343,13 +343,18 @@ $('check-links').onclick = async () => {
 // ---- Backup ----
 const backupStatus = text => { $('backup-status').textContent = text; };
 
-$('backup').onclick = async () => {
+// Downloads a backup of what's here now; also run just before a restore replaces it, so a restore can be undone.
+async function downloadBackup(name = 'backup') {
   const data = { app: 'awesome-bookmarks', version: 1, settings: await getSettings(), tasks: await getTasks(), notes: await getNotes() };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-  a.download = `awesome-bookmarks-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `awesome-bookmarks-${name}-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  return data;
+}
+$('backup').onclick = async () => {
+  const data = await downloadBackup();
   backupStatus(`Saved ${data.tasks.length} tasks, your notes and your settings.`);
 };
 
@@ -366,9 +371,12 @@ $('restore').onchange = async () => {
   } catch {
     return backupStatus("That file isn't an Awesome bookmarks backup.");
   }
-  if (!confirm('Replace your settings, tasks and notes with the ones in this backup?')) return;
+  const tasks = cleanTasks(data.tasks), current = (await getTasks()).length, withNotes = typeof data.notes === 'string';
+  if (!confirm(`Restore this backup?\n\nIt replaces your settings and your ${current} task${current === 1 ? '' : 's'} with its ${tasks.length}`
+    + `${withNotes ? ', and your notes with its notes' : ' (your notes stay: it has none)'}.\n\n`
+    + 'A copy of what you have now is downloaded first, so you can restore that to undo this.')) return;
   try {
-    const tasks = cleanTasks(data.tasks);
+    await downloadBackup('before-restore');
     // Frequent sites needs a permission this computer may not have given.
     const frequent = data.settings.frequent === true && await chrome.permissions.contains({ permissions: ['topSites'] });
     // Write the backup's tasks before removing any, so a failed save never leaves you with none.
