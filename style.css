@@ -561,6 +561,8 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
 .choice .icon::after { display: none; }
 .choice .emoji { font-size: 19px; }
 .choice .letter { font-size: 15px; }
+.choice.upload svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; color: var(--text-2); }
+.choice.upload:hover svg { color: var(--text); }
 .field input.emoji-input { width: 52px; padding: 7px 0; font-size: 20px; text-align: center; }
 #editor .buttons { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
 .glass-button.primary { background: var(--accent); color: #fff; box-shadow: 0 2px 10px rgba(10, 132, 255, .4), var(--inner-highlight); }

@@ -619,6 +619,8 @@ const editorIconFile = document.getElementById('editor-icon-file');
 const editorIconReset = document.getElementById('editor-icon-reset');
 const editorEmoji = document.getElementById('editor-emoji');
 const iconChoices = document.getElementById('icon-choices');
+const iconField = document.getElementById('editor-icon-field');
+const uploadGlyph = document.getElementById('upload-glyph').content.firstElementChild;
 // The picture chosen in this dialog: undefined = leave as is, null = back to the site's icon, or a data URL.
 let editorIconChoice, editorNode;
 
@@ -643,18 +645,27 @@ function showEditorIcon() {
   showIconChoices(node, custom);
 }
 
-// The chooser: the site's own icon, its letter, then emoji (this site's suggestion first). Click to pick.
+// The chooser: upload an image, your picture (if one is chosen), the site's own icon, its letter,
+// then emoji (this site's suggestion first). Click to pick.
 function showIconChoices(node, current) {
   const suggested = emojiFor(node);
-  const values = ['site', 'letter', suggested, ...ICON_PALETTE.filter(e => e !== suggested)];
-  iconChoices.replaceChildren(...values.map(v => {
+  const picture = current && isPicture(current) ? [current] : [];
+  const values = [...picture, 'site', 'letter', suggested, ...ICON_PALETTE.filter(e => e !== suggested)];
+  const upload = document.createElement('button');
+  upload.type = 'button';
+  upload.className = 'choice upload';
+  upload.title = 'Upload an image (or paste or drop one here)';
+  upload.setAttribute('aria-label', 'Upload an image');
+  upload.append(uploadGlyph.cloneNode(true));
+  upload.onclick = () => editorIconFile.click();
+  iconChoices.replaceChildren(upload, ...values.map(v => {
     const b = document.createElement('button');
     const tile = document.createElement('span');
     b.type = 'button';
     b.className = 'choice';
     b.setAttribute('role', 'option');
     b.setAttribute('aria-selected', v === current);
-    b.title = v === 'site' ? "Site's own icon" : v === 'letter' ? 'Letter' : v;
+    b.title = v === 'site' ? "Site's own icon" : v === 'letter' ? 'Letter' : isPicture(v) ? 'Your image' : v;
     b.setAttribute('aria-label', b.title);
     tile.className = 'icon';
     tile.append(customIcon(node, v));
@@ -676,9 +687,25 @@ editorEmoji.addEventListener('input', () => {
   editorIconChoice = emoji;
   showEditorIcon();
 });
-editorIconFile.onchange = async () => {
+editorIconFile.onchange = () => {
   const file = editorIconFile.files[0];
   editorIconFile.value = '';
+  useIconFile(file);
+};
+// A pasted or dropped image works like an uploaded one; pasting text into the fields is untouched.
+const imageIn = files => [...files].find(f => f.type.startsWith('image/'));
+editor.addEventListener('paste', e => {
+  const file = imageIn(e.clipboardData.files);
+  if (file && !iconField.hidden) { e.preventDefault(); useIconFile(file); }
+});
+editor.addEventListener('dragover', e => { if (!iconField.hidden && e.dataTransfer.types.includes('Files')) e.preventDefault(); });
+editor.addEventListener('drop', e => {
+  const file = imageIn(e.dataTransfer.files);
+  if (!file || iconField.hidden) return;
+  e.preventDefault();
+  useIconFile(file);
+});
+async function useIconFile(file) {
   if (!file) return;
   try {
     editorIconChoice = await iconFromFile(file);
@@ -691,7 +718,7 @@ editorIconFile.onchange = async () => {
     editorError.hidden = false;
   }
   showEditorIcon();
-};
+}
 editorIconReset.onclick = () => { editorIconChoice = null; showEditorIcon(); };
 editorUrl.addEventListener('change', showEditorIcon); // a new address: preview its site icon
 let editorSave = null; // what Save does for the form currently open

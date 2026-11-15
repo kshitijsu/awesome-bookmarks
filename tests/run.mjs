@@ -136,6 +136,11 @@ try {
     const i = document.getElementById('editor-icon-file'); i.files = dt.files; i.dispatchEvent(new Event('change'));
     await new Promise(r => setTimeout(r, 400)); })()`);
   check('Choosing an image previews it in the dialog', await ev(`({ preview: !!editorIcon.querySelector('img.custom'), reset: !editorIconReset.hidden })`), { preview: true, reset: true });
+  check('The chosen image is shown, selected, in the chooser', await ev(`(() => { const s = iconChoices.querySelector('[aria-selected="true"]'); return [s?.title, !!s?.querySelector('img.custom')]; })()`), ['Your image', true]);
+  await ev(`(async () => { editorIconChoice = null; showEditorIcon(); const c = new OffscreenCanvas(40, 40); c.getContext('2d').fillRect(0, 0, 40, 40);
+    const dt = new DataTransfer(); dt.items.add(new File([await c.convertToBlob({ type: 'image/png' })], 'p.png', { type: 'image/png' }));
+    editorName.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); await new Promise(r => setTimeout(r, 400)); })()`);
+  check('Pasting an image into the dialog uses it as the icon', await ev(`!!editorIcon.querySelector('img.custom')`), true);
   await click('#editor-form button[type=submit]');
   await wait(600);
   const tileIcon = `(async () => { const n = (await chrome.bookmarks.search({ query: 'Site 0' }))[0]; const t = document.querySelector('#pager a.app[data-id="' + n?.id + '"] img.custom');
@@ -175,7 +180,7 @@ try {
     t.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 })); await new Promise(r => setTimeout(r, 200));
     [...document.querySelectorAll('#menu button')].find(b => b.textContent === 'Change icon…').click(); await new Promise(r => setTimeout(r, 300)); })()`);
   check('Change icon… opens a chooser with many options', await ev(`({ open: editor.open, count: iconChoices.children.length > 60, first: [...iconChoices.children].slice(0, 2).map(b => b.title),
-    focusInChooser: iconChoices.contains(document.activeElement) })`), { open: true, count: true, first: ["Site's own icon", 'Letter'], focusInChooser: true });
+    focusInChooser: iconChoices.contains(document.activeElement) })`), { open: true, count: true, first: ['Upload an image (or paste or drop one here)', "Site's own icon"], focusInChooser: true });
   await click('#icon-choices .choice[title="Site\'s own icon"]');
   check('Picking the site icon selects it', await ev(`({ selected: iconChoices.querySelector('[aria-selected="true"]').title, preview: !editorIcon.querySelector('.emoji') })`), { selected: "Site's own icon", preview: true });
   await click('#icon-choices .choice[title="🚀"]');
