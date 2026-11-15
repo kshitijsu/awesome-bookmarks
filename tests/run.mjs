@@ -21,11 +21,14 @@ if (!existsSync(BIN)) { console.error(`Chrome not found at ${BIN}. Set CHROME_BI
 const ID = [...createHash('sha256').update(EXT).digest('hex').slice(0, 32)].map(c => String.fromCharCode(97 + parseInt(c, 16))).join('');
 const BASE = `chrome-extension://${ID}/`;
 const PORT = 9333, SITE = 9401;
+let followed = 0; // requests that reached /followed: a followed redirect
 
 // A tiny site for the link check, CORS-open so it needs no website permission.
 const site = http.createServer((q, r) => {
   const h = { 'Access-Control-Allow-Origin': '*' };
   if (q.url === '/gone') { r.writeHead(404, h); return r.end(); }
+  if (q.url === '/redirect') { r.writeHead(302, { ...h, Location: `http://127.0.0.1:${SITE}/followed` }); return r.end(); }
+  if (q.url === '/followed') followed++;
   if (q.url === '/nohead' && q.method === 'HEAD') { r.writeHead(405, h); return r.end(); }
   r.writeHead(200, h); r.end('ok');
 }).listen(SITE, '127.0.0.1');
@@ -244,6 +247,11 @@ try {
     'http://printer.local', 'http://router', 'http://[::1]/', 'http://[fd12::1]/', 'http://[fe80::1]/', 'http://169.254.169.254/', 'http://0x7f.1/', 'http://2130706433/',
     'https://example.com', 'https://8.8.8.8', 'https://10.example.com', 'http://172.32.1.1'].map(isPublicHost)`),
     [false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true]);
+  check('Link check: disguised local addresses are refused, real public IPv6 allowed', await ev(`['http://[::ffff:127.0.0.1]/', 'http://[::ffff:7f00:1]/', 'http://[::ffff:192.168.1.1]/',
+    'http://[::127.0.0.1]/', 'http://[64:ff9b::127.0.0.1]/', 'http://[2002:7f00:1::]/', 'http://[2001::1]/', 'http://localhost./', 'http://router.lan./', 'http://printer.local./',
+    'http://100.64.0.1/', 'http://100.127.255.254/', 'http://[2606:4700::1111]/', 'https://example.com./', 'http://100.128.0.1/'].map(isPublicHost)`),
+    [false, false, false, false, false, false, false, false, false, false, false, false, true, true, true]);
+  check('Link check: a redirect counts as working and is never followed', [await ev(`linkProblem('http://127.0.0.1:${SITE}/redirect')`), followed], [null, 0]);
 
   // ---- Settings: backup ----
   check('Backup file', await ev(`(async () => { let href; const orig = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { href = this.href; };

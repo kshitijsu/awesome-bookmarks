@@ -267,11 +267,14 @@ $('find-duplicates').onclick = async () => {
 
 // Only a clear answer counts as broken: no server, a timeout, or "not found". Sites that refuse
 // automated checks (403, 429…) are left alone. No cookies are sent.
+// Redirects are never followed (they could point into this computer or the local network): a redirect means the link works.
 async function linkProblem(url) {
-  const opts = method => ({ method, credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(10_000) });
+  const opts = method => ({ method, credentials: 'omit', cache: 'no-store', redirect: 'manual', signal: AbortSignal.timeout(10_000) });
   try {
     let r = await fetch(url, opts('HEAD'));
+    if (r.type === 'opaqueredirect') return null;
     if (r.status === 405 || r.status === 501) { r = await fetch(url, opts('GET')); r.body?.cancel(); }
+    if (r.type === 'opaqueredirect') return null;
     return r.status === 404 || r.status === 410 ? `Not found (${r.status})` : null;
   } catch (err) {
     return err.name === 'TimeoutError' ? 'Timed out' : "Couldn't connect";
@@ -279,12 +282,22 @@ async function linkProblem(url) {
 }
 
 // Never probe this computer or the local network: loading a page there can change things (routers, printers, dev servers).
-// ponytail: checks the name only; a public name that resolves to a private address still gets through.
+// ponytail: checks the name only (extension pages can't look up DNS); a public name that resolves to a private
+// address still gets through. Not following redirects keeps that to the bookmarked address itself.
 function isPublicHost(url) {
-  const h = new URL(url).hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  let h = new URL(url).hostname.replace(/^\[|\]$/g, '').toLowerCase().replace(/\.+$/, ''); // "localhost." is localhost
+  // IPv4 written as IPv6 (URL() turns ::ffff:127.0.0.1 into ::ffff:7f00:1): judge the IPv4 inside.
+  const mapped = h.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (mapped) {
+    const [hi, lo] = [parseInt(mapped[1], 16), parseInt(mapped[2], 16)];
+    h = [hi >> 8, hi & 255, lo >> 8, lo & 255].join('.');
+  }
   if (h === 'localhost' || /\.(localhost|local|internal|lan|home\.arpa)$/.test(h) || !/[.:]/.test(h)) return false;
-  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) return !/^(0|10|127)\.|^169\.254\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(h); // URL() already wrote it as plain IPv4
-  return !/^(::1?$|f[cd][0-9a-f]{2}:|fe[89ab][0-9a-f]:)/.test(h);
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) { // URL() already wrote it as plain IPv4
+    return !/^(0|10|127)\.|^169\.254\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\.|^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(h);
+  }
+  // IPv6: only global unicast (2000::/3), minus NAT64, 6to4 and Teredo, which can wrap a private IPv4 address.
+  return !h.includes(':') || (/^[23][0-9a-f]{0,3}:/.test(h) && !/^(64:ff9b:|2002:|2001:0?:)/.test(h));
 }
 
 const HOSTS = { origins: ['http://*/*', 'https://*/*'] };
