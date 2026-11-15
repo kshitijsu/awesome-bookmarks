@@ -263,7 +263,7 @@ class Pager {
   // Launchpad's grid is 7x5; shrink it when the space can't fit that. A folder grows to fit its items.
   pageSize() {
     const [wantCols, wantRows] = this.grid?.() || [];
-    const w = this.root.clientWidth, h = this.root.clientHeight;
+    const w = this.width || this.root.clientWidth, h = this.root.clientHeight; // width: set by the Dock, whose own width is still easing
     const cols = wantCols || clamp(Math.floor(w / this.cell), 3, 7);
     const rows = this.fit
       ? clamp(Math.ceil(this.items.length / cols), 1, this.maxRows)
@@ -378,9 +378,13 @@ const dockPager = new DockPager(dockEl, document.getElementById('dock-dots'), {
   // One column per icon; the Dock is exactly as wide as its icons, shrinking them when there are many.
   grid: () => {
     const n = Math.max(dockPager.items.length, 1);
-    const w = main.root.clientWidth; // the page's width, less the Tasks panel when it's open
+    // The page's width, less the Tasks panel when it's open. Measured on the page, not the icon grid:
+    // the grid is hidden (0 wide) in list view.
+    const body = getComputedStyle(document.body);
+    const w = document.body.clientWidth - parseFloat(body.paddingLeft) - parseFloat(body.paddingRight);
     const room = w > 700 ? w - 228 : w; // clear of the corner buttons
-    dockEl.style.width = `${n * clamp(room / n, 58, 84)}px`;
+    dockPager.width = n * clamp(room / n, 58, 84);
+    dockEl.style.width = `${dockPager.width}px`;
     return [n, 1];
   },
 });
@@ -823,7 +827,7 @@ menu.addEventListener('keydown', e => {
 document.addEventListener('contextmenu', e => {
   if (e.target.closest('input, #editor, #importer, #menu, #tasks') || g) return; // text fields and panels keep the normal menu
   e.preventDefault();
-  const el = e.target.closest('.app'), node = el && nodes.get(el.dataset.id);
+  const el = e.target.closest('.app, .list-row'), node = el && nodes.get(el.dataset.id);
   let { clientX: x, clientY: y } = e;
   if (el && !x && !y) { const r = el.getBoundingClientRect(); [x, y] = [r.left + r.width / 2, r.top + r.height / 2]; } // from the keyboard
   if (!node) return showMenu([['Add bookmark…', addHere]], x, y);
@@ -1084,6 +1088,88 @@ document.addEventListener('click', e => {
   }
 }, true);
 
+// ---- List view ----
+// One card per folder, its bookmarks as rows. Bookmarks not in any folder are grouped by website;
+// a website with just one bookmark isn't grouped: that bookmark stands on its own.
+const listEl = document.getElementById('list');
+const viewToggle = document.getElementById('view-toggle');
+let collapsed = new Set(); // cards folded shut, on this computer: folder ids or "site:<host>"
+viewToggle.onclick = () => chrome.storage.sync.set({ view: settings.view === 'list' ? 'grid' : 'list' }).catch(console.error);
+const site = url => hostname(url).replace(/^www\./, '') || scheme(url).replace(':', '');
+
+function listRow(node) {
+  const row = document.createElement(node.url ? 'a' : 'button');
+  const icon = document.createElement('span');
+  const text = document.createElement('span');
+  const name = document.createElement('span');
+  const sub = document.createElement('small');
+  row.className = 'list-row';
+  row.dataset.id = node.id;
+  row.title = node.title || node.url || '';
+  icon.className = 'icon';
+  text.className = 'list-text';
+  name.textContent = node.title || hostname(node.url);
+  if (node.url) {
+    row.href = node.url;
+    icon.append(img(node));
+    sub.textContent = site(node.url);
+    if (['chrome:', 'file:'].includes(scheme(node.url))) row.onclick = e => { e.preventDefault(); openViaApi(node.url); };
+  } else {
+    row.type = 'button';
+    icon.classList.add('list-folder');
+    icon.textContent = '📁';
+    const n = leaves(node).length;
+    sub.textContent = `${n} bookmark${n === 1 ? '' : 's'}`;
+    row.onclick = () => openFolder(node, row);
+  }
+  text.append(name, sub);
+  row.append(icon, text);
+  return row;
+}
+
+// key: what remembers the fold; parent: where "Add link" saves.
+function listCard(key, title, parent, children) {
+  const card = document.createElement('section');
+  const details = document.createElement('details');
+  const summary = document.createElement('summary');
+  const name = document.createElement('span');
+  const count = document.createElement('span');
+  const add = document.createElement('button');
+  card.className = 'list-card glass thin';
+  name.className = 'list-title';
+  name.textContent = title;
+  count.className = 'list-count';
+  count.textContent = children.length;
+  summary.append(name, count);
+  details.open = !collapsed.has(key);
+  details.ontoggle = () => {
+    if (details.open !== collapsed.has(key)) return; // already recorded (also skips the toggle from building it)
+    details.open ? collapsed.delete(key) : collapsed.add(key);
+    chrome.storage.local.set({ collapsed: [...collapsed] }).catch(console.error);
+  };
+  add.type = 'button';
+  add.className = 'list-add';
+  add.textContent = '+ Add link';
+  add.onclick = () => addBookmark(parent);
+  details.append(summary, ...children.map(listRow), add);
+  card.append(details);
+  return card;
+}
+
+function renderList() {
+  const bySite = Map.groupBy(topItems.filter(n => n.url), n => site(n.url));
+  listEl.replaceChildren(
+    ...topItems.filter(n => !n.url).map(f => listCard(f.id, f.title || 'Folder', f, visible(f.children))),
+    ...[...bySite].filter(([, links]) => links.length > 1).map(([host, links]) => listCard(`site:${host}`, host, bar, links)),
+    ...[...bySite.values()].filter(links => links.length === 1).map(([node]) => {
+      const card = document.createElement('section');
+      card.className = 'list-card list-single glass thin';
+      card.append(listRow(node));
+      return card;
+    }),
+  );
+}
+
 // ---- Search, keys, loading ----
 
 function render() {
@@ -1101,6 +1187,13 @@ function render() {
   empty.textContent = q ? 'No bookmarks found. Press Enter to search the web.' : 'No bookmarks found';
   webSearch.hidden = !q;
   webSearch.textContent = `Search the web for “${search.value.trim()}”`;
+  // List view shows the home page as cards; a search always shows its results as tiles.
+  const listView = settings.view === 'list' && !q && topItems.length > 0;
+  document.body.classList.toggle('view-list', settings.view === 'list');
+  document.body.classList.toggle('list-view', listView);
+  viewToggle.title = viewToggle.ariaLabel = settings.view === 'list' ? 'Show as icons' : 'Show as list';
+  listEl.hidden = !listView;
+  if (listView) renderList();
   main.set(items, bar, !q); // search results mix folders, so they can't be reordered
   document.querySelector('.app.selected')?.classList.remove('selected'); // tiles are reused across searches
   highlighted = -1;
@@ -1114,6 +1207,8 @@ async function load() {
   nodes = new Map();
   (function walk(n) { nodes.set(n.id, n); n.children?.forEach(walk); })(root);
   icons = await readIcons();
+  const stored = (await chrome.storage.local.get('collapsed')).collapsed;
+  collapsed = new Set(Array.isArray(stored) ? stored.filter(k => typeof k === 'string' && k.length <= 300).slice(0, 500) : []);
   // Pictures of deleted bookmarks are dropped (Undo keeps its own copy). Ids are never reused.
   if ([...icons.keys()].some(id => !nodes.has(id))) {
     for (const id of icons.keys()) if (!nodes.has(id)) icons.delete(id);

@@ -3,7 +3,7 @@
 // so it stays in chrome.storage.local on this computer.
 const WALLPAPERS = { meadow: 'Meadow', dusk: 'Dusk', ocean: 'Ocean', sunrise: 'Sunrise', graphite: 'Graphite', custom: 'Your image' };
 // cols/rows 0 = automatic. emoji: an emoji for each bookmark instead of the site's own icon. frequent: the most-visited row (needs the optional topSites permission). calendar: show the next-meeting widget (switched on by connecting, never by default).
-const DEFAULTS = { cols: 0, rows: 0, wallpaper: 'meadow', blur: true, emoji: true, hiddenFolders: [], clock: true, calendar: false, frequent: false };
+const DEFAULTS = { cols: 0, rows: 0, wallpaper: 'meadow', blur: true, emoji: true, hiddenFolders: [], clock: true, calendar: false, frequent: false, view: 'grid' };
 const LIMITS = { cols: [3, 10], rows: [2, 8] };
 
 // Synced data can come from another computer or an older version: accept only known values.
@@ -19,6 +19,7 @@ function sanitize(s) {
     clock: typeof s.clock === 'boolean' ? s.clock : DEFAULTS.clock,
     calendar: s.calendar === true,
     frequent: s.frequent === true,
+    view: s.view === 'list' ? 'list' : 'grid',
   };
 }
 

@@ -16,6 +16,13 @@
     </div>
     <div class="widgets-end">
       <div id="meeting" class="widget glass thin" aria-live="polite" hidden></div>
+      <button id="view-toggle" class="glass thin glass-button round" type="button" aria-label="Show as list" title="Show as list">
+        <svg class="show-list" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></svg>
+        <svg class="show-grid" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>
+      </button>
+      <button id="add" class="glass thin glass-button round" type="button" aria-label="Add bookmark" title="Add bookmark">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
       <button id="tasks-toggle" class="glass thin glass-button round" type="button" aria-label="Tasks" aria-controls="tasks" aria-expanded="false" aria-keyshortcuts="Alt+T" title="Tasks (⌥T)">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 7 2 2 3.5-3.5M4 15l2 2 3.5-3.5M13 8h7M13 16h7"/></svg>
       </button>
@@ -35,14 +42,12 @@
     <p id="empty" hidden>No bookmarks found</p>
   </main>
   <nav id="dots" class="dots glass thin" aria-label="Pages"></nav>
+  <main id="list" class="list" aria-label="Bookmarks" hidden></main>
   <!-- The Dock: bookmarks kept in the "Dock" folder (inside Other bookmarks), always on screen -->
   <div id="dock" class="pager dock glass thin" aria-label="Dock" aria-keyshortcuts="Alt+D"><div class="track"></div></div>
   <nav id="dock-dots" hidden></nav>
-  <button id="add" class="glass thin glass-button round add" aria-label="Add bookmark" title="Add bookmark">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-  </button>
   <button id="settings" class="glass thin glass-button round" aria-label="Settings" title="Settings">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
   </button>
 
   <dialog id="drawer" class="glass regular">

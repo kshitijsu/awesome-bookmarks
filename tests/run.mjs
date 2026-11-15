@@ -223,6 +223,37 @@ try {
   await ev(`(async () => { fetch = realFetch; driveToken = realToken; await chrome.storage.local.remove('drive');
     await chrome.bookmarks.remove(dA); await chrome.bookmarks.remove(dB); })()`);
 
+  // ---- List view ----
+  await ev(`(async () => { const b = (await chrome.bookmarks.getTree())[0].children[0].id;
+    window.lf = await chrome.bookmarks.create({ parentId: b, title: 'List folder' });
+    await chrome.bookmarks.create({ parentId: lf.id, title: 'Inside', url: 'https://inside.example/' });
+    await chrome.bookmarks.create({ parentId: b, title: 'Repo one', url: 'https://www.gitlab.example/a' });
+    await chrome.bookmarks.create({ parentId: b, title: 'Repo two', url: 'https://gitlab.example/b' });
+    await chrome.bookmarks.create({ parentId: b, title: 'Lonely', url: 'https://lonely.example/' });
+    document.getElementById('view-toggle').click(); await new Promise(r => setTimeout(r, 700)); })()`);
+  check('List view: folders as cards, loose bookmarks grouped by website', await ev(`(() => {
+    const cards = [...document.querySelectorAll('#list .list-card:not(.list-single)')].map(c => [c.querySelector('.list-title').textContent, [...c.querySelectorAll('.list-row .list-text > span')].map(s => s.textContent)]);
+    return { pagerHidden: getComputedStyle(document.getElementById('pager')).display, folder: cards.find(c => c[0] === 'List folder'), site: cards.find(c => c[0] === 'gitlab.example'), single: [...document.querySelectorAll('#list .list-single .list-text > span')].map(s => s.textContent).includes('Lonely') && !cards.some(c => c[0] === 'lonely.example'), label: document.getElementById('view-toggle').title };
+  })()`), { pagerHidden: 'none', folder: ['List folder', ['Inside']], site: ['gitlab.example', ['Repo one', 'Repo two']], single: true, label: 'Show as icons' });
+  check('List view: a folded card stays folded after a reload', await ev(`(async () => { const d = [...document.querySelectorAll('#list details')].find(d => d.querySelector('.list-title').textContent === 'List folder');
+    d.open = false; await new Promise(r => setTimeout(r, 200)); await load(); return [...document.querySelectorAll('#list details')].find(d => d.querySelector('.list-title').textContent === 'List folder').open; })()`), false);
+  check('List view: searching shows tiles', await ev(`(async () => { search.value = 'repo'; search.dispatchEvent(new Event('input')); await new Promise(r => setTimeout(r, 200));
+    const r = [document.getElementById('list').hidden, document.querySelectorAll('#pager .app').length]; search.value = ''; search.dispatchEvent(new Event('input')); return r; })()`), [true, 2]);
+  await ev(`(async () => { document.getElementById('view-toggle').click(); await new Promise(r => setTimeout(r, 600)); await chrome.bookmarks.removeTree(lf.id);
+    for (const b of [...await chrome.bookmarks.search({ query: 'Repo' }), ...await chrome.bookmarks.search({ query: 'Lonely' })]) await chrome.bookmarks.remove(b.id); await new Promise(r => setTimeout(r, 300)); })()`);
+  check('The Dock keeps its width across list and icon views', await ev(`(async () => {
+    const other = (await chrome.bookmarks.getTree())[0].children[1].id;
+    const d = (await chrome.bookmarks.search({ title: 'Dock' })).find(n => !n.url) || await chrome.bookmarks.create({ parentId: other, title: 'Dock' });
+    window.dockTest = await chrome.bookmarks.create({ parentId: d.id, title: 'Docked', url: 'https://docked.example/' });
+    await new Promise(r => setTimeout(r, 400));
+    const width = () => document.getElementById('dock').getBoundingClientRect().width;
+    const t = document.getElementById('view-toggle'), before = width();
+    t.click(); await new Promise(r => setTimeout(r, 600)); const inList = width();
+    t.click(); await new Promise(r => setTimeout(r, 600)); const after = width();
+    await chrome.bookmarks.remove(dockTest.id); await new Promise(r => setTimeout(r, 300));
+    return [inList === before, after === before];
+  })()`), [true, true]);
+  check('Back to icons', await ev(`[document.getElementById('list').hidden, getComputedStyle(document.getElementById('pager')).display !== 'none']`), [true, true]);
   // ---- Security: chrome:// action pages ----
   check('chrome:// quit/crash pages are refused, normal ones allowed', await ev(`['chrome://quit', 'chrome://restart/', 'CHROME://crash', 'chrome://memory-pressure-critical', 'javascript:alert(1)',
     'chrome://settings', 'https://example.com/chrome://quit'].map(isSafe)`), [false, false, false, false, false, true, true]);
