@@ -472,8 +472,10 @@ function openFolder(node, fromTile) {
   folder.page = 0;
   if (drawer.open) return showFolder();
   drawer.showModal();
-  drawerTitle.blur(); // showModal focuses the title; only focus it when the user clicks it
   showFolder();
+  // showModal focuses the title; start on the first bookmark instead (the title is for renaming, by click).
+  folder.root.querySelector('.app')?.focus({ preventScroll: true });
+  if (document.activeElement === drawerTitle) drawerTitle.blur();
   if (fromTile) zoom(fromTile);
 }
 

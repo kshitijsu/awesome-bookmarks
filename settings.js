@@ -222,3 +222,14 @@ async function brightness(src) {
     return sum / (px.length / 4) / 255;
   } catch { return 0; }
 }
+
+// "Choose a file" buttons are labels around a hidden file input, which Tab skips: make them real keyboard buttons.
+for (const label of document.querySelectorAll('label.glass-button:has(> input[type="file"])')) {
+  label.tabIndex = 0;
+  label.role = 'button';
+  label.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    label.querySelector('input').click();
+  });
+}

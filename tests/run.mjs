@@ -263,6 +263,17 @@ try {
   check('"/" jumps to search without typing a slash', await ev(`(() => { document.activeElement?.blur();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true }));
     const r = [document.activeElement === search, search.value]; search.blur(); return r; })()`), [true, '']);
+  check('Keyboard: Escape closes Tasks back to its button; a folder opens on its first bookmark', await ev(`(async () => {
+    const t = document.getElementById('tasks-toggle'); t.click(); await new Promise(r => setTimeout(r, 200));
+    document.getElementById('tasks-new').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    const tasks = [document.getElementById('tasks').hidden, document.activeElement === t];
+    const b = (await chrome.bookmarks.getTree())[0].children[0].id;
+    const f = await chrome.bookmarks.create({ parentId: b, title: 'Keyboard folder', index: 0 });
+    await chrome.bookmarks.create({ parentId: f.id, title: 'Keyboard inside', url: 'https://kbd.example/' }); await new Promise(r => setTimeout(r, 600));
+    document.querySelector('#pager .app[data-id="' + f.id + '"]').click(); await new Promise(r => setTimeout(r, 500));
+    const first = document.activeElement?.closest('#folder-pager .app')?.textContent.includes('Keyboard inside') === true;
+    document.getElementById('drawer').close(); await chrome.bookmarks.removeTree(f.id); await new Promise(r => setTimeout(r, 500));
+    return [...tasks, first]; })()`), [true, true, true]);
   // ---- Medium: weather, focus timer, list drag, photo of the day (the network is faked) ----
   check('Weather shows on the clock, and a bad reply shows nothing', await ev(`(async () => {
     const real = window.fetch; let asked = '';
@@ -377,6 +388,8 @@ try {
   check('Link check: a redirect counts as working and is never followed', [await ev(`linkProblem('http://127.0.0.1:${SITE}/redirect')`), followed], [null, 0]);
 
   // ---- Settings: backup ----
+  check('Keyboard: "Restore…" is a focusable button', await ev(`(() => { const l = document.getElementById('restore').parentElement;
+    l.focus(); return [document.activeElement === l, l.role]; })()`), [true, 'button']);
   check('Backup file', await ev(`(async () => { let href; const orig = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { href = this.href; };
     document.getElementById('backup').click(); await new Promise(r => setTimeout(r, 400)); HTMLAnchorElement.prototype.click = orig;
     const d = JSON.parse(await (await fetch(href)).text()); return { app: d.app, tasks: d.tasks.length, wallpaper: d.settings.wallpaper }; })()`),

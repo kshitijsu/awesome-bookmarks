@@ -26,6 +26,14 @@ tasksToggle.onclick = () => {
   if (open) tasksNew.focus();
 };
 document.getElementById('tasks-close').onclick = () => tasksToggle.click();
+// Escape closes the panel and returns to its button (in a task's text, Escape first undoes the edit).
+tasksPanel.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || e.target.matches('.task-text')) return;
+  e.preventDefault();
+  e.stopPropagation(); // the page's own Escape (clear search, blur) must not take focus back off the button
+  tasksToggle.click();
+  tasksToggle.focus();
+});
 // Option+T (Alt+T) opens or closes the panel from anywhere, even while typing.
 document.addEventListener('keydown', e => {
   if (e.altKey && !e.metaKey && !e.ctrlKey && e.code === 'KeyT') {
