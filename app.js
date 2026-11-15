@@ -1124,8 +1124,52 @@ function listRow(node) {
   }
   text.append(name, sub);
   row.append(icon, text);
+  row.draggable = true;
+  row.ondragstart = e => {
+    e.dataTransfer.setData(DRAG_TYPE, node.id);
+    e.dataTransfer.effectAllowed = 'move';
+    row.classList.add('dragging');
+  };
+  row.ondragend = () => row.classList.remove('dragging');
   return row;
 }
+
+// Drag a row onto a row of a folder card to put it there, onto a folder card to add it at the end,
+// or onto any other card to take it out of its folder (to the Bookmarks bar).
+const DRAG_TYPE = 'application/x-awesome-bookmark';
+function dropTarget(e) {
+  const card = e.target.closest?.('.list-card');
+  if (!card || !e.dataTransfer.types.includes(DRAG_TYPE)) return null;
+  const parent = nodes.get(card.dataset.folder) || bar;
+  const row = card.dataset.folder ? e.target.closest('.list-row') : null;
+  return { card, row, parent, index: row ? nodes.get(row.dataset.id)?.index : undefined };
+}
+function markDrop(t) {
+  for (const el of listEl.querySelectorAll('.drop-target, .drop-before')) el.classList.remove('drop-target', 'drop-before');
+  t?.card.classList.add('drop-target');
+  t?.row?.classList.add('drop-before');
+}
+listEl.addEventListener('dragover', e => {
+  const t = dropTarget(e);
+  if (!t) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  markDrop(t);
+});
+listEl.addEventListener('dragleave', e => { if (!listEl.contains(e.relatedTarget)) markDrop(null); });
+listEl.addEventListener('drop', async e => {
+  const t = dropTarget(e);
+  markDrop(null);
+  if (!t) return;
+  e.preventDefault();
+  const node = nodes.get(e.dataTransfer.getData(DRAG_TYPE));
+  if (!node || node.id === t.parent.id || (!t.card.dataset.folder && node.parentId === bar.id)) return;
+  try {
+    await chrome.bookmarks.move(node.id, { parentId: t.parent.id, ...(t.index !== undefined && { index: t.index }) });
+  } catch (err) {
+    console.error(err); // e.g. a folder dropped into itself
+  }
+});
 
 // key: what remembers the fold; parent: where "Add link" saves.
 function listCard(key, title, parent, children) {
@@ -1136,6 +1180,7 @@ function listCard(key, title, parent, children) {
   const count = document.createElement('span');
   const add = document.createElement('button');
   card.className = 'list-card glass thin';
+  if (!key.startsWith('site:')) card.dataset.folder = parent.id;
   name.className = 'list-title';
   name.textContent = title;
   count.className = 'list-count';
@@ -1339,13 +1384,20 @@ for (const ev of ['onCreated', 'onRemoved', 'onChanged', 'onMoved', 'onChildrenR
 document.getElementById('settings').onclick = () => chrome.runtime.openOptionsPage();
 
 // Settings changed (here, on the settings page, or synced from another computer): apply live.
+const credit = document.getElementById('photo-credit');
 async function applySettings() {
   settings = await getSettings();
   await applyWallpaper(settings);
+  const daily = settings.wallpaper === 'daily' ? await getDaily() : null;
+  credit.hidden = !daily?.credit;
+  credit.textContent = daily?.credit ? `📷 ${daily.credit}` : '';
+  if (daily?.page) credit.href = daily.page; else credit.removeAttribute('href');
+  if (settings.wallpaper === 'daily') refreshDaily(); // a new day: fetch the next photo (the storage change re-applies)
 }
 chrome.storage.onChanged.addListener(async (changes, area) => {
-  if (area === 'local' && 'icons' in changes && !('wallpaperImage' in changes)) return scheduleLoad(); // a picture changed here or in another tab
-  if (!settingsChanged(changes, area) && !('wallpaperImage' in changes)) return; // e.g. tasks: nothing on the grid changed
+  const wallpaperChanged = 'wallpaperImage' in changes || 'daily' in changes;
+  if (area === 'local' && 'icons' in changes && !wallpaperChanged) return scheduleLoad(); // a picture changed here or in another tab
+  if (!settingsChanged(changes, area) && !wallpaperChanged) return; // e.g. tasks: nothing on the grid changed
   await applySettings();
   load();
 });

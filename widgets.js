@@ -137,6 +137,38 @@ function showMeeting() {
   meetingEl.replaceChildren(...parts);
 }
 
+// ---- Weather ----
+// Open-Meteo (free, no key) for the city chosen in settings, never your location. Asked at most every 30 minutes.
+const weatherEl = document.getElementById('weather');
+const WEATHER_EVERY = 30 * 60_000;
+const fahrenheit = /-US$/.test(navigator.language);
+// WMO weather codes, by the highest code each covers: [max, day, night]
+const WEATHER_ICONS = [[0, '☀️', '🌙'], [2, '⛅', '☁️'], [3, '☁️'], [48, '🌫️'], [57, '🌦️'], [67, '🌧️'], [77, '🌨️'], [82, '🌧️'], [86, '🌨️'], [99, '⛈️']];
+const weatherIcon = (code, day) => { const [, d, n] = WEATHER_ICONS.find(([max]) => code <= max) || [0, '🌡️']; return (!day && n) || d; };
+
+async function showWeather(place) {
+  weatherEl.hidden = !place;
+  if (!place) return;
+  let { weather: w } = await chrome.storage.local.get('weather');
+  // The saved reading is only used for the same place and units, and only once checked.
+  if (!(w && w.lat === place.lat && w.lon === place.lon && w.f === fahrenheit && Number.isFinite(w.temp) && Number.isInteger(w.code) && Number.isFinite(w.at))) w = null;
+  if (!w || Date.now() - w.at >= WEATHER_EVERY) {
+    try {
+      const q = new URLSearchParams({ latitude: place.lat, longitude: place.lon, current: 'temperature_2m,weather_code,is_day', ...(fahrenheit && { temperature_unit: 'fahrenheit' }) });
+      const res = await fetch(`https://api.open-meteo.com/v1/forecast?${q}`, { credentials: 'omit', signal: AbortSignal.timeout(10_000) });
+      const c = res.ok ? (await res.json())?.current : null;
+      if (!Number.isFinite(c?.temperature_2m) || !Number.isInteger(c?.weather_code)) throw new Error('Unexpected weather reply');
+      w = { lat: place.lat, lon: place.lon, f: fahrenheit, at: Date.now(), temp: c.temperature_2m, code: c.weather_code, day: c.is_day !== 0 };
+      await chrome.storage.local.set({ weather: w });
+    } catch (err) {
+      console.warn('Weather:', err.message);
+      if (!w) { weatherEl.hidden = true; return; } // keep showing the last reading for this place
+    }
+  }
+  weatherEl.textContent = `${weatherIcon(w.code, w.day)} ${Math.round(w.temp)}° · ${place.name.split(',')[0]}`;
+  weatherEl.title = place.name;
+}
+
 // ---- Frequent sites ----
 // Chrome's own most-visited list (what its default new tab shows), as a small row under the search field.
 // Needs the optional "topSites" permission, which the settings switch asks for.
@@ -166,13 +198,14 @@ async function applyWidgets() {
   userName = s.name;
   tick();
   showFrequent(s.frequent).catch(console.error);
+  showWeather(s.place).catch(console.error);
   refreshMeeting();
 }
 chrome.storage.onChanged.addListener((changes, area) => { if (settingsChanged(changes, area)) applyWidgets(); });
 chrome.permissions.onRemoved.addListener(applyWidgets); // access taken away in chrome://extensions
 // Coming back to the tab (or waking the laptop): catch the clock up and re-check the calendar.
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { tick(); applyWidgets().catch(console.error); } });
-setInterval(() => { if (!document.hidden) refreshMeeting(); }, 5 * 60_000); // pick up newly added meetings
+setInterval(() => { if (!document.hidden) { refreshMeeting(); getSettings().then(s => showWeather(s.place)).catch(console.error); } }, 5 * 60_000); // new meetings, fresh weather
 
 tick();
 applyWidgets().catch(console.error);

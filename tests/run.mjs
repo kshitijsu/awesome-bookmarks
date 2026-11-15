@@ -263,6 +263,68 @@ try {
   check('"/" jumps to search without typing a slash', await ev(`(() => { document.activeElement?.blur();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true }));
     const r = [document.activeElement === search, search.value]; search.blur(); return r; })()`), [true, '']);
+  // ---- Medium: weather, focus timer, list drag, photo of the day (the network is faked) ----
+  check('Weather shows on the clock, and a bad reply shows nothing', await ev(`(async () => {
+    const real = window.fetch; let asked = '';
+    window.fetch = async (url, o) => { if (!String(url).includes('open-meteo')) return real(url, o); asked = String(url); return new Response(JSON.stringify({ current: window.fakeCurrent }), { headers: { 'content-type': 'application/json' } }); };
+    window.fakeCurrent = { temperature_2m: 21.4, weather_code: 0, is_day: 1 };
+    await chrome.storage.local.remove('weather');
+    await chrome.storage.sync.set({ place: { name: 'Pune, India', lat: 18.52, lon: 73.86 } }); await new Promise(r => setTimeout(r, 500));
+    const w = document.getElementById('weather'), shown = [w.hidden, w.textContent, new URL(asked).hostname];
+    window.fakeCurrent = { temperature_2m: '<img src=x>', weather_code: 0 };
+    await chrome.storage.local.remove('weather'); await chrome.storage.sync.set({ place: { name: 'Elsewhere', lat: 1, lon: 2 } }); await new Promise(r => setTimeout(r, 500));
+    const bad = w.hidden;
+    await chrome.storage.sync.remove('place'); await new Promise(r => setTimeout(r, 300));
+    window.fetch = real;
+    return [...shown, bad, w.hidden];
+  })()`), [false, '☀️ 21° · Pune', 'api.open-meteo.com', true, true]);
+  check('Focus timer runs across tabs, then rings and resets', await ev(`(async () => {
+    document.getElementById('focus-start').click(); await new Promise(r => setTimeout(r, 200));
+    const run = (await chrome.storage.local.get('focus')).focus;
+    const running = [run?.kind, document.getElementById('focus-label').textContent, document.getElementById('focus-stop').hidden, /^2[45]:\\d\\d · Focus$/.test(document.title)];
+    await chrome.storage.local.set({ focus: { kind: 'focus', endsAt: Date.now() + 1200 } }); await new Promise(r => setTimeout(r, 2600));
+    const done = [document.getElementById('focus-label').textContent, (await chrome.storage.local.get('focus')).focus, document.title, document.getElementById('focus-start').hidden];
+    document.getElementById('focus-break').click(); await new Promise(r => setTimeout(r, 200));
+    document.getElementById('focus-stop').click(); await new Promise(r => setTimeout(r, 200));
+    return [...running, ...done, document.getElementById('focus-label').textContent, (await chrome.storage.local.get('focus')).focus];
+  })()`), ['focus', 'Focus', false, true, 'Done: time for a break', null, 'New Tab', false, 'Ready', null]);
+  check('List view: drag rows into a folder, reorder, and out again', await ev(`(async () => {
+    const b = (await chrome.bookmarks.getTree())[0].children[0].id, wait = () => new Promise(r => setTimeout(r, 400));
+    const f = await chrome.bookmarks.create({ parentId: b, title: 'Drag folder' });
+    const one = await chrome.bookmarks.create({ parentId: f.id, title: 'Drag one', url: 'https://one.drag.example/' });
+    const two = await chrome.bookmarks.create({ parentId: f.id, title: 'Drag two', url: 'https://two.drag.example/' });
+    const loose = await chrome.bookmarks.create({ parentId: b, title: 'Drag loose', url: 'https://loose.drag.example/' });
+    await chrome.storage.sync.set({ view: 'list' }); await wait();
+    const row = id => document.querySelector('#list .list-row[data-id="' + id + '"]');
+    const card = () => [...document.querySelectorAll('#list .list-card')].find(c => c.querySelector('.list-title')?.textContent === 'Drag folder');
+    const drag = async (from, to) => { const dt = new DataTransfer(); const o = { dataTransfer: dt, bubbles: true, cancelable: true };
+      from.dispatchEvent(new DragEvent('dragstart', o)); to.dispatchEvent(new DragEvent('dragover', o)); to.dispatchEvent(new DragEvent('drop', o)); from.dispatchEvent(new DragEvent('dragend', o)); await wait(); };
+    const kids = async () => (await chrome.bookmarks.getChildren(f.id)).map(n => n.title);
+    await drag(row(loose.id), card().querySelector('summary')); const intoFolder = await kids();
+    await drag(row(two.id), row(one.id)); const reordered = await kids();
+    const other = document.querySelector('#list .list-card:not([data-folder])');
+    await drag(row(one.id), other); const out = [(await chrome.bookmarks.get(one.id))[0].parentId === b, await kids()];
+    await chrome.bookmarks.removeTree(f.id); await chrome.bookmarks.remove(one.id); await chrome.storage.sync.set({ view: 'grid' }); await wait();
+    return [intoFolder, reordered, ...out];
+  })()`), [['Drag one', 'Drag two', 'Drag loose'], ['Drag two', 'Drag one', 'Drag loose'], true, ['Drag two', 'Drag loose']]);
+  check('Photo of the day: skips portrait and foreign hosts, credits the photo', await ev(`(async () => {
+    const real = window.fetch, asked = [];
+    const c = new OffscreenCanvas(64, 36); c.getContext('2d').fillRect(0, 0, 64, 36); const jpeg = await c.convertToBlob({ type: 'image/jpeg' });
+    const pic = (w, h, host) => ({ image: { title: 'File:Test photo.jpg', image: { width: w, height: h }, thumbnail: { source: 'https://' + host + '/wikipedia/commons/thumb/a/ab/Test.jpg/960px-Test.jpg' }, artist: { text: 'Ann Lens' }, description: { text: 'A lake' } } });
+    const feeds = [pic(1000, 3000, 'thumb.wikimedia.org'), pic(4000, 2000, 'evil.example'), pic(4000, 2000, 'thumb.wikimedia.org')];
+    window.fetch = async (url, o) => { if (!/wikimedia|evil\.example/.test(String(url))) return real(url, o); url = String(url); asked.push(url);
+      if (url.includes('/featured/')) return new Response(JSON.stringify(feeds.shift() || {}), { headers: { 'content-type': 'application/json' } });
+      return new Response(jpeg, { headers: { 'content-type': 'image/jpeg' } }); };
+    await chrome.storage.local.remove(['daily', 'dailyTried']);
+    await chrome.storage.sync.set({ wallpaper: 'daily' }); await new Promise(r => setTimeout(r, 1500));
+    const d = (await chrome.storage.local.get('daily')).daily, credit = document.getElementById('photo-credit');
+    const r = [d?.date === new Date().toLocaleDateString('en-CA'), document.documentElement.dataset.wallpaper, credit.hidden, credit.textContent, credit.href,
+      asked.filter(u => !u.includes('/featured/')), asked.some(u => u.includes('evil.example'))];
+    window.fetch = real;
+    await chrome.storage.sync.set({ wallpaper: 'meadow' }); await chrome.storage.local.remove(['daily', 'dailyTried']); await new Promise(r => setTimeout(r, 300));
+    return [...r, credit.hidden];
+  })()`), [true, 'custom', false, '📷 A lake · Ann Lens', 'https://commons.wikimedia.org/wiki/File%3ATest%20photo.jpg',
+    ['https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/Test.jpg/1920px-Test.jpg'], false, true]);
   check('Notes save after a pause and follow other tabs', await ev(`(async () => {
     const n = document.getElementById('notes'); n.focus(); n.value = 'Call the bank'; n.dispatchEvent(new Event('input'));
     await new Promise(r => setTimeout(r, 1900)); const saved = (await chrome.storage.sync.get('notes')).notes; n.blur();

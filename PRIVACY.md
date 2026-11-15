@@ -16,12 +16,16 @@ Awesome bookmarks replaces Chrome's new tab page with your bookmarks laid out as
 | Browsing history *(optional)* | Only when you open "Add from history", to let you pick pages to bookmark | Read on this computer. Never stored or sent. |
 | Most-visited sites *(optional)* | Only if you switch on "Frequent sites" | Read on this computer. Never stored or sent. |
 | Google Calendar *(optional)* | Only if you click Connect, to show your next meeting today | Read-only access. Events are requested from Google and shown on the page, never stored. Chrome keeps the sign-in token; Disconnect revokes it at Google. |
+| Weather city *(optional)* | Only if you type a city under Widgets | The city name is sent to Open-Meteo once to find it; after that, its coordinates are sent to Open-Meteo at most every 30 minutes for the current weather. Your own location is never read. |
+| Photo of the day *(optional)* | Only if you pick it as the wallpaper | Once a day, Wikimedia's picture of the day is downloaded (no cookies) and kept in `chrome.storage.local`. |
 | Website access *(optional)* | Only while "Check broken links" runs | Each bookmarked public page gets one request, without cookies, to see whether it still exists. Addresses on your own computer or local network are never checked. Access is given back when the check ends. |
 
 ## What it sends
 
 - **To Google:** calendar requests and token revocation, only if you connect Google Calendar; your icons and wallpaper image, to your own Drive, only if you connect Drive sync.
 - **To the sites you bookmarked:** one request each, only when you run "Check broken links".
+- **To Open-Meteo:** the weather city you type, and its coordinates, only if you set one.
+- **To Wikimedia:** a request for the day's photo, only if you pick Photo of the day.
 - **Nothing else.** Favicons come from Chrome's own local cache.
 
 ## Backups

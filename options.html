@@ -41,6 +41,7 @@
         <label class="row"><span>Blur the wallpaper</span><input id="blur" class="switch" type="checkbox" role="switch"></label>
       </div>
       <p id="image-error" class="error" role="alert" hidden></p>
+      <p class="hint">Photo of the day is Wikimedia Commons' picture of the day, downloaded once a day.</p>
     </section>
 
     <section>
@@ -48,13 +49,14 @@
       <div class="group">
         <label class="row"><span>Clock</span><input id="clock" class="switch" type="checkbox" role="switch"></label>
         <label class="row"><span>Frequent sites</span><input id="frequent" class="switch" type="checkbox" role="switch"></label>
+        <label class="row"><span class="row-text"><span>Weather</span><small id="place-status" class="row-sub"></small></span><input id="place" class="text-input" maxlength="100" autocomplete="off" spellcheck="false" placeholder="City, e.g. Pune"></label>
         <label class="row"><span>Your name, for the greeting</span><input id="name" class="text-input" maxlength="40" autocomplete="given-name" spellcheck="false" placeholder="Optional"></label>
         <div class="row">
           <span class="row-text"><span>Next meeting from Google Calendar</span><small id="calendar-status" class="row-sub"></small></span>
           <button id="calendar-button" class="glass thin glass-button pill" type="button"></button>
         </div>
       </div>
-      <p class="hint">Frequent sites are Chrome's own most-visited list, read on this computer. Only today's upcoming events are read, on this computer. Nothing is saved or sent anywhere except Google.</p>
+      <p class="hint">Frequent sites are Chrome's own most-visited list, read on this computer. Weather comes from Open-Meteo: only the city you type is sent, never your location. Only today's upcoming events are read, on this computer. Nothing is saved or sent anywhere except Google.</p>
     </section>
 
     <section>

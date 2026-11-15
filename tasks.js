@@ -113,6 +113,83 @@ chrome.storage.onChanged.addListener((changes, area) => {
   reloadTasks().catch(console.error);
 });
 
+// ---- Focus timer ----
+// The end time is kept on this computer, so the timer carries on across new tabs and after closing them.
+// ponytail: it only rings in a new tab that's in front when time's up; ringing from the background needs a service worker.
+const FOCUS = { focus: [25, 'Focus'], break: [5, 'Break'] };
+const focusTime = document.getElementById('focus-time');
+const focusLabel = document.getElementById('focus-label');
+const focusStart = document.getElementById('focus-start');
+const focusBreak = document.getElementById('focus-break');
+const focusStop = document.getElementById('focus-stop');
+const pageTitle = document.title;
+let focusRun = null, focusTick = null, focusDone = '';
+const mmss = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+
+async function readFocus() {
+  const { focus: f } = await chrome.storage.local.get('focus');
+  return f && Object.hasOwn(FOCUS, f.kind) && Number.isFinite(f.endsAt) && f.endsAt - Date.now() <= FOCUS[f.kind][0] * 60_000 ? { kind: f.kind, endsAt: f.endsAt } : null;
+}
+function showFocus() {
+  const left = focusRun ? focusRun.endsAt - Date.now() : 0;
+  if (focusRun && left <= 0) return finishFocus();
+  focusTime.textContent = focusRun ? mmss(left) : '25:00';
+  focusLabel.textContent = focusRun ? FOCUS[focusRun.kind][1] : focusDone || 'Ready';
+  focusStart.hidden = focusBreak.hidden = !!focusRun;
+  focusStop.hidden = !focusRun;
+  document.title = focusRun ? `${mmss(left)} · ${FOCUS[focusRun.kind][1]}` : pageTitle;
+}
+function setFocus(run) {
+  focusRun = run;
+  clearInterval(focusTick);
+  focusTick = run ? setInterval(showFocus, 1000) : null;
+  showFocus();
+}
+function finishFocus() {
+  const { kind, endsAt } = focusRun;
+  focusDone = kind === 'focus' ? 'Done: time for a break' : 'Break over';
+  setFocus(null);
+  if (document.visibilityState === 'visible' && Date.now() - endsAt < 60_000) chime(); // not for one that ended long ago
+  store(chrome.storage.local.remove('focus'));
+}
+// Two soft notes, made on the spot: no sound file to load.
+function chime() {
+  try {
+    const ctx = new AudioContext();
+    [660, 880].forEach((freq, i) => {
+      const osc = ctx.createOscillator(), gain = ctx.createGain(), t = ctx.currentTime + i * 0.25;
+      osc.frequency.value = freq;
+      osc.connect(gain).connect(ctx.destination);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      osc.start(t);
+      osc.stop(t + 0.65);
+    });
+    setTimeout(() => ctx.close(), 1500);
+  } catch { /* no sound available: the label still says it's done */ }
+}
+const startFocus = kind => {
+  focusDone = '';
+  const run = { kind, endsAt: Date.now() + FOCUS[kind][0] * 60_000 };
+  setFocus(run);
+  store(chrome.storage.local.set({ focus: run }));
+};
+focusStart.onclick = () => startFocus('focus');
+focusBreak.onclick = () => startFocus('break');
+focusStop.onclick = () => { focusDone = ''; setFocus(null); store(chrome.storage.local.remove('focus')); };
+// Started, stopped or finished in another new tab.
+chrome.storage.onChanged.addListener(async (changes, area) => {
+  if (area !== 'local' || !('focus' in changes)) return;
+  const run = await readFocus();
+  if (!run && !focusRun) return; // this tab's own finish or stop: keep its "Done" label
+  if (!run && focusRun.endsAt - Date.now() < 1500) return finishFocus();
+  focusDone = '';
+  setFocus(run);
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) showFocus(); });
+readFocus().then(setFocus).catch(console.error);
+
 // ---- Notes ----
 // Saved once typing pauses (sync allows about one write every two seconds), and when leaving the box.
 const notesEl = document.getElementById('notes');

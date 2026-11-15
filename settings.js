@@ -1,15 +1,18 @@
 // Settings shared by the new tab and the settings page.
 // They sync through chrome.storage.sync; a custom wallpaper image is too big for sync,
 // so it stays in chrome.storage.local on this computer.
-const WALLPAPERS = { meadow: 'Meadow', dusk: 'Dusk', ocean: 'Ocean', sunrise: 'Sunrise', graphite: 'Graphite', custom: 'Your image' };
-// cols/rows 0 = automatic. emoji: an emoji for each bookmark instead of the site's own icon. frequent: the most-visited row (needs the optional topSites permission). calendar: show the next-meeting widget (switched on by connecting, never by default).
-const DEFAULTS = { cols: 0, rows: 0, wallpaper: 'meadow', blur: true, emoji: true, hiddenFolders: [], clock: true, calendar: false, frequent: false, view: 'grid', hour12: null, name: '' };
+const WALLPAPERS = { meadow: 'Meadow', dusk: 'Dusk', ocean: 'Ocean', sunrise: 'Sunrise', graphite: 'Graphite', daily: 'Photo of the day', custom: 'Your image' };
+// cols/rows 0 = automatic. emoji: an emoji for each bookmark instead of the site's own icon. frequent: the most-visited row (needs the optional topSites permission). calendar: show the next-meeting widget (switched on by connecting, never by default). view: the home page as an icon grid or a list of cards. name: shown in the greeting. place: the city for the weather ({ name, lat, lon }), or null. hour12: null follows the computer's own clock style; clicking the clock sets true (12-hour) or false (24-hour).
+const DEFAULTS = { cols: 0, rows: 0, wallpaper: 'meadow', blur: true, emoji: true, hiddenFolders: [], clock: true, calendar: false, frequent: false, view: 'grid', hour12: null, name: '', place: null };
 const LIMITS = { cols: [3, 10], rows: [2, 8] };
 
 const MAX_NAME = 40;
 // Plain text only: control and formatting characters (e.g. right-to-left overrides) are dropped.
 const cleanText = (v, max) => typeof v === 'string' ? v.replace(/\p{C}/gu, '').trim().slice(0, max) : '';
 const cleanName = v => cleanText(v, MAX_NAME);
+const cleanPlace = p => p && typeof p === 'object' && cleanText(p.name, 80)
+  && Number.isFinite(p.lat) && Math.abs(p.lat) <= 90 && Number.isFinite(p.lon) && Math.abs(p.lon) <= 180
+  ? { name: cleanText(p.name, 80), lat: p.lat, lon: p.lon } : null;
 
 // Synced data can come from another computer or an older version: accept only known values.
 function sanitize(s) {
@@ -27,6 +30,7 @@ function sanitize(s) {
     view: s.view === 'list' ? 'list' : 'grid',
     hour12: typeof s.hour12 === 'boolean' ? s.hour12 : null,
     name: cleanName(s.name),
+    place: cleanPlace(s.place),
   };
 }
 
@@ -123,11 +127,82 @@ async function getWallpaperImage() {
   return typeof wallpaperImage === 'string' && IMAGE_RE.test(wallpaperImage) ? wallpaperImage : null;
 }
 
+// ---- Pictures ----
+const MAX_UPLOAD = 25 * 1024 * 1024; // bytes; the stored copy is re-encoded far smaller
+const MAX_SIDE = 2560; // px; plenty for a blurred wallpaper and fits Chrome's local storage
+
+const toDataUrl = blob => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(blob);
+});
+
+// Decoding proves it's really an image; re-encoding as JPEG strips everything but the pixels.
+async function encodeImage(blob) {
+  if (blob.size > MAX_UPLOAD) throw new RangeError('too big');
+  const bitmap = await createImageBitmap(blob);
+  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const canvas = new OffscreenCanvas(Math.round(bitmap.width * scale), Math.round(bitmap.height * scale));
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return toDataUrl(await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 }));
+}
+
+// ---- Photo of the day ----
+// Wikimedia Commons' picture of the day (freely licensed; the new tab credits it). Every computer picks the
+// same photo for a date. Portrait photos are skipped for the latest landscape one from the past week.
+const DAILY_HOSTS = ['thumb.wikimedia.org', 'upload.wikimedia.org'];
+const DAILY_RETRY = 60 * 60_000; // after a failed try (offline, say), wait this long before the next
+const localDate = (back = 0) => { const d = new Date(); d.setDate(d.getDate() - back); return d.toLocaleDateString('en-CA'); }; // YYYY-MM-DD
+
+async function getDaily() {
+  const { daily: d } = await chrome.storage.local.get('daily');
+  if (!d || typeof d.date !== 'string' || !IMAGE_RE.test(d.image)) return null;
+  const page = typeof d.page === 'string' && d.page.startsWith('https://commons.wikimedia.org/wiki/') ? d.page : null;
+  return { date: d.date, image: d.image, credit: cleanText(d.credit, 120), page };
+}
+
+let dailyRun = null;
+const refreshDaily = () => (dailyRun ??= (async () => {
+  try {
+    if ((await getDaily())?.date === localDate()) return;
+    const { dailyTried } = await chrome.storage.local.get('dailyTried');
+    if (Date.now() - (Number(dailyTried) || 0) < DAILY_RETRY) return;
+    await chrome.storage.local.set({ dailyTried: Date.now() });
+    const opts = { credentials: 'omit', signal: AbortSignal.timeout(15_000) };
+    for (let back = 0; back < 7; back++) {
+      const res = await fetch(`https://api.wikimedia.org/feed/v1/wikipedia/en/featured/${localDate(back).replaceAll('-', '/')}`, opts);
+      if (!res.ok) continue;
+      const pic = (await res.json())?.image;
+      const { width, height } = pic?.image || {};
+      const src = typeof pic?.thumbnail?.source === 'string' ? new URL(pic.thumbnail.source) : null;
+      if (!(width >= height) || src?.protocol !== 'https:' || !DAILY_HOSTS.includes(src.hostname)) continue;
+      // The feed links a small copy; the same path at 1920px is one of Wikimedia's standard sizes.
+      if (width >= 1920) src.pathname = src.pathname.replace(/\/\d+px-([^/]+)$/, '/1920px-$1');
+      const file = await fetch(src, opts);
+      if (!file.ok || !/^image\//.test(file.headers.get('content-type') || '')) continue;
+      const title = typeof pic.title === 'string' && /^File:[^/?#]{1,250}$/.test(pic.title) ? pic.title : null;
+      await chrome.storage.local.set({ daily: {
+        date: localDate(),
+        image: await encodeImage(await file.blob()),
+        credit: cleanText([pic.description?.text, pic.artist?.text].filter(t => typeof t === 'string').join(' · '), 120),
+        page: title && `https://commons.wikimedia.org/wiki/${encodeURIComponent(title)}`,
+      } });
+      return;
+    }
+  } catch (err) {
+    console.warn('Photo of the day:', err.message);
+  } finally {
+    dailyRun = null;
+  }
+})());
+
 async function applyWallpaper(s) {
   const root = document.documentElement;
-  const image = s.wallpaper === 'custom' ? await getWallpaperImage() : null;
+  const image = s.wallpaper === 'custom' ? await getWallpaperImage() : s.wallpaper === 'daily' ? (await getDaily())?.image : null;
   root.style.setProperty('--wallpaper-image', image ? `url("${image}")` : 'none');
-  root.dataset.wallpaper = image ? 'custom' : s.wallpaper === 'custom' ? DEFAULTS.wallpaper : s.wallpaper;
+  root.dataset.wallpaper = image ? 'custom' : ['custom', 'daily'].includes(s.wallpaper) ? DEFAULTS.wallpaper : s.wallpaper;
   root.classList.toggle('blur-wallpaper', s.blur);
   root.classList.toggle('bright-wallpaper', !!image && await brightness(image) > 0.6);
 }

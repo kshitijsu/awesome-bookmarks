@@ -42,10 +42,10 @@ body.ready :is(.search, #pager, #dots, #widgets, #dock) { animation: launch .5s 
   pointer-events: auto;
 }
 /* Join sits beside the details, keeping the card as short as the clock so it never reaches the grid */
-/* Right corner: the meeting card, then the view, add, tasks and history buttons */
+/* Right corner: the meeting card, the focus timer, then the view, add and tasks buttons */
 .widgets-end { display: flex; align-items: flex-start; gap: 8px; min-width: 0; margin-left: auto; }
-:is(#view-toggle, #add, #import-history) { flex: none; color: var(--text-2); pointer-events: auto; }
-:is(#view-toggle, #add, #import-history):hover { color: var(--text); }
+:is(#view-toggle, #add) { flex: none; color: var(--text-2); pointer-events: auto; }
+:is(#view-toggle, #add):hover { color: var(--text); }
 #view-toggle .show-grid, body.view-list #view-toggle .show-list { display: none; }
 body.view-list #view-toggle .show-grid { display: block; }
 #meeting { grid-template-columns: minmax(0, 1fr) auto; column-gap: 14px; }
@@ -69,7 +69,8 @@ body.view-list #view-toggle .show-grid { display: block; }
 a.widget-title:hover { text-decoration: underline; }
 .widget .glass-button { margin-top: 6px; padding: 5px 14px; font-size: 12.5px; text-decoration: none; }
 
-@media (max-width: 860px) {
+/* 1150px: the focus timer would reach the search field */
+@media (max-width: 1150px) {
   #widgets { position: static; order: -2; margin-bottom: 12px; pointer-events: auto; }
   .widget { flex: 1; max-width: none; }
   .widgets-end { flex: 1; justify-content: flex-end; }
@@ -437,6 +438,11 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
 .tasks-add { width: 100%; height: 36px; margin: 0; }
 .tasks-add:focus-within { width: 100%; }
 .tasks-list { flex: 1; min-height: 0; margin: 0; padding: 0; overflow-y: auto; list-style: none; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .25) transparent; }
+.focus { display: flex; flex: none; align-items: center; gap: 8px; height: 36px; padding: 0 4px 0 14px; border-radius: 18px; pointer-events: auto; }
+.focus-time { font-size: 15px; font-weight: 600; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.focus-label { max-width: 150px; overflow: hidden; color: var(--text-2); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.focus .glass-button { flex: none; padding: 5px 12px; font-size: 12.5px; }
+@media (max-width: 1240px) { .focus-label { display: none; } }
 .notes-label { margin: 4px 0 -6px 4px; color: var(--text-2); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
 .notes { flex: none; height: 120px; padding: 10px 12px; border: 0; border-radius: var(--radius-s); color: var(--text); font: inherit; font-size: 13.5px; line-height: 1.45; resize: vertical; outline: none; }
 .notes::placeholder { color: var(--text-3); }
@@ -474,8 +480,9 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
 }
 
 /* ---- Floating controls ---- */
-#settings { position: fixed; right: 16px; bottom: 16px; color: var(--text-2); }
-#settings:hover { color: var(--text); }
+:is(#settings, #import-history) { position: fixed; right: 16px; bottom: 16px; color: var(--text-2); }
+#import-history { right: 60px; }
+:is(#settings, #import-history):hover { color: var(--text); }
 
 /* ---- Right-click menu: thick glass, the most lifted surface ---- */
 /* Denser than the thick material: text sits on top of busy icons, so it must stay readable */
@@ -721,6 +728,13 @@ body.list-view :is(#pager, #dots) { display: none; }
   scrollbar-color: rgba(255, 255, 255, .25) transparent;
 }
 .list[hidden] { display: none; }
+.list-row.dragging { opacity: .45; }
+.list-card.drop-target { box-shadow: inset 0 0 0 2px var(--accent); }
+.list-row.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+/* Photo of the day credit, in the bottom-left corner */
+.photo-credit { position: fixed; left: 16px; bottom: 14px; max-width: min(360px, calc(50vw - 220px)); overflow: hidden; color: var(--text-2); font-size: 11px; text-decoration: none; text-shadow: var(--text-shadow, 0 1px 2px rgba(0, 0, 0, .5)); white-space: nowrap; text-overflow: ellipsis; }
+.photo-credit[href]:hover { color: var(--text); text-decoration: underline; }
+@media (max-width: 700px) { .photo-credit { display: none; } }
 body.ready .list { animation: launch .5s var(--ease); }
 .list-card { padding: 6px; border-radius: var(--radius-l); }
 .list-single .list-row { padding-block: 10px; }

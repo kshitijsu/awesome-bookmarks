@@ -1,6 +1,4 @@
 const $ = id => document.getElementById(id);
-const MAX_UPLOAD = 25 * 1024 * 1024; // bytes; the stored copy is re-encoded far smaller
-const MAX_SIDE = 2560; // px; plenty for a blurred wallpaper and fits Chrome's local storage
 
 let settings = DEFAULTS;
 // One save at a time, each starting from what's stored now, so quick successive changes
@@ -31,6 +29,29 @@ $('blur').onchange = () => save({ blur: $('blur').checked });
 $('emoji').onchange = () => save({ emoji: $('emoji').checked });
 $('clock').onchange = () => save({ clock: $('clock').checked });
 $('name').onchange = () => save({ name: $('name').value });
+
+// The city is looked up once, here (Open-Meteo's free geocoder); the new tab then asks for that place's weather only.
+async function findPlace(query) {
+  const lang = /^[a-z]{2}/.exec(navigator.language)?.[0] || 'en';
+  const q = new URLSearchParams({ name: query.slice(0, 100), count: '1', language: lang, format: 'json' });
+  const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?${q}`, { credentials: 'omit', signal: AbortSignal.timeout(10_000) });
+  if (!res.ok) throw new Error(`Geocoding failed (${res.status})`);
+  const r = (await res.json())?.results?.[0];
+  return r ? cleanPlace({ name: [r.name, r.country].filter(t => typeof t === 'string').join(', '), lat: r.latitude, lon: r.longitude }) : null;
+}
+$('place').onchange = async () => {
+  const query = $('place').value.trim();
+  if (!query) return save({ place: null });
+  $('place-status').textContent = 'Looking up…';
+  try {
+    const place = await findPlace(query);
+    if (place) await save({ place });
+    else $('place-status').textContent = `Couldn't find “${query.slice(0, 40)}”`;
+  } catch (err) {
+    console.warn(err.message);
+    $('place-status').textContent = "Couldn't reach the weather service";
+  }
+};
 // Reading the most-visited list is an optional permission: Chrome asks the first time it's switched on.
 $('frequent').onchange = async () => {
   const on = $('frequent').checked && await chrome.permissions.request({ permissions: ['topSites'] }).catch(() => false);
@@ -96,10 +117,10 @@ for (const [key, name] of Object.entries(WALLPAPERS)) {
   input.type = 'radio';
   input.name = 'wallpaper';
   input.value = key;
-  input.onchange = () => save({ wallpaper: key });
+  input.onchange = () => { save({ wallpaper: key }); if (key === 'daily') refreshDaily(); };
   swatch.className = 'swatch';
   swatch.id = `swatch-${key}`;
-  if (key !== 'custom') swatch.style.background = `var(--wp-${key})`;
+  if (!['custom', 'daily'].includes(key)) swatch.style.background = `var(--wp-${key})`;
   text.textContent = name;
   label.append(input, swatch, text);
   $('wallpapers').append(label);
@@ -110,27 +131,13 @@ function showError(message) {
   $('image-error').hidden = !message;
 }
 
-const toDataUrl = blob => new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => resolve(reader.result);
-  reader.onerror = () => reject(reader.error);
-  reader.readAsDataURL(blob);
-});
-
 $('image').onchange = async () => {
   const file = $('image').files[0];
   $('image').value = '';
   if (!file) return;
   showError('');
   try {
-    if (file.size > MAX_UPLOAD) throw new RangeError('too big');
-    // Decoding proves it's really an image; re-encoding strips everything but the pixels.
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
-    const canvas = new OffscreenCanvas(Math.round(bitmap.width * scale), Math.round(bitmap.height * scale));
-    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    bitmap.close();
-    const dataUrl = await toDataUrl(await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 }));
+    const dataUrl = await encodeImage(file);
     await chrome.storage.local.set({ wallpaperImage: dataUrl });
     await save({ wallpaper: 'custom' });
     syncDrive(true);
@@ -181,11 +188,15 @@ async function refresh() {
   $('clock').checked = settings.clock;
   $('frequent').checked = settings.frequent;
   if (document.activeElement !== $('name')) $('name').value = settings.name;
+  if (document.activeElement !== $('place')) $('place').value = settings.place?.name || '';
+  $('place-status').textContent = settings.place ? 'On the clock' : 'Type a city to show it';
   showCalendar();
   await showDrive();
   for (const input of document.querySelectorAll('input[name="wallpaper"]')) {
     input.checked = input.value === (settings.wallpaper === 'custom' && !image ? DEFAULTS.wallpaper : settings.wallpaper);
   }
+  const daily = await getDaily();
+  $('swatch-daily').style.background = daily ? `url("${daily.image}") center / cover` : 'linear-gradient(135deg, #5f8fb8, #d9a86c)';
   // "Your image" only makes sense once there is one.
   const custom = $('swatch-custom');
   custom.style.background = image ? `url("${image}") center / cover` : '';
@@ -390,6 +401,6 @@ document.addEventListener('keydown', e => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (settingsChanged(changes, area) || 'wallpaperImage' in changes || 'drive' in changes) refresh();
+  if (settingsChanged(changes, area) || 'wallpaperImage' in changes || 'daily' in changes || 'drive' in changes) refresh();
 });
 renderFolders().catch(console.error).finally(refresh);
