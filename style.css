@@ -447,8 +447,11 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
   text-overflow: ellipsis;
   outline: none;
   user-select: text;
+  /* The strike-through is always there, just invisible: ticking fades it and the text dim together */
+  text-decoration: line-through transparent;
+  transition: color var(--medium) var(--ease), text-decoration-color var(--medium) var(--ease);
 }
-.task.done .task-text { color: var(--text-3); text-decoration: line-through; }
+.task.done .task-text { color: var(--text-3); text-decoration-color: var(--text-3); }
 .task-delete { flex: none; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--text-2); font-size: 17px; line-height: 1; cursor: pointer; opacity: 0; }
 .task:hover .task-delete, .task-delete:focus-visible { opacity: 1; }
 .task-delete:hover { background: rgba(255, 255, 255, .16); color: var(--text); }
@@ -625,11 +628,15 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
   border: solid #fff;
   border-width: 0 2px 2px 0;
   rotate: 45deg;
-  scale: 0;
-  transition: scale var(--medium) var(--ease-spring);
+  scale: .4;
+  opacity: 0;
+  transition: scale .36s var(--ease-spring), opacity var(--fast) var(--ease);
 }
 :is(.history-row, .task) input[type="checkbox"]:checked { background: var(--accent); box-shadow: 0 1px 4px rgba(10, 132, 255, .5); }
-:is(.history-row, .task) input[type="checkbox"]:checked::after { scale: 1; }
+:is(.history-row, .task) input[type="checkbox"]:checked::after { scale: 1; opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  :is(.history-row, .task) input[type="checkbox"], :is(.history-row, .task) input[type="checkbox"]::after, .task-text { transition: none; }
+}
 :is(.history-row, .task) input[type="checkbox"]:disabled:checked { background: rgba(255, 255, 255, .3); box-shadow: none; }
 :is(.history-row, .task) input[type="checkbox"]:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
@@ -686,3 +693,81 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
   .dock { transition: none; }
   .app { transition: none; } /* hover still enlarges, just without the spring */
 }
+
+/* ---- List view: folders (and websites) as cards of rows ---- */
+body.list-view :is(#pager, #dots) { display: none; }
+.list {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  align-content: start;
+  align-items: start;
+  gap: 16px;
+  width: min(100%, 1240px);
+  margin: 28px auto 0;
+  padding: 4px 4px 16px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .25) transparent;
+}
+.list[hidden] { display: none; }
+.list-row.dragging { opacity: .45; }
+.list-card.drop-target { box-shadow: inset 0 0 0 2px var(--accent); }
+.list-row.drop-before { box-shadow: inset 0 2px 0 var(--accent); }
+/* Photo of the day credit, in the bottom-left corner */
+.photo-credit { position: fixed; left: 16px; bottom: 14px; max-width: min(360px, calc(50vw - 220px)); overflow: hidden; color: var(--text-2); font-size: 11px; text-decoration: none; text-shadow: var(--text-shadow, 0 1px 2px rgba(0, 0, 0, .5)); white-space: nowrap; text-overflow: ellipsis; }
+.photo-credit[href]:hover { color: var(--text); text-decoration: underline; }
+@media (max-width: 700px) { .photo-credit { display: none; } }
+body.ready .list { animation: launch .5s var(--ease); }
+.list-card { padding: 6px; border-radius: var(--radius-l); }
+.list-single .list-row { padding-block: 10px; }
+.list-card summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 8px;
+  border-radius: var(--radius-s);
+  list-style: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.list-card summary::-webkit-details-marker { display: none; }
+.list-card summary::before { content: ""; width: 6px; height: 6px; margin: 0 4px 2px 2px; border: solid var(--text-2); border-width: 0 1.5px 1.5px 0; rotate: 45deg; transition: rotate var(--medium) var(--ease); }
+.list-card details:not([open]) summary::before { rotate: -45deg; }
+.list-card summary:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.list-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-count { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-s);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--fast);
+}
+.list-row:hover { background: rgba(255, 255, 255, .1); }
+.list-row:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.list-row .icon { --icon: 28px; flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; overflow: hidden; }
+.list-row .icon :is(img, .emoji, .letter) { width: 100%; height: 100%; }
+.list-row .icon .emoji { font-size: 17px; }
+.list-row .icon .letter { font-size: 13px; }
+.list-folder { font-size: 20px; }
+.list-text { display: flex; flex-direction: column; min-width: 0; }
+.list-text > span { font-size: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-text small { color: var(--text-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-add { display: block; width: 100%; margin-top: 2px; padding: 8px 10px; border: 0; border-radius: var(--radius-s); background: none; color: var(--text-2); font: inherit; text-align: left; cursor: pointer; }
+.list-add:hover { background: rgba(255, 255, 255, .08); color: var(--text); }
+.list-add:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+@media (prefers-reduced-motion: reduce) { body.ready .list { animation: none; } .list-card summary::before { transition: none; } }
