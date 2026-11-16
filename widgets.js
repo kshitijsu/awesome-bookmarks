@@ -111,6 +111,10 @@ function untilText(start, end, now = new Date()) {
 }
 
 function showMeeting() {
+  // Tell the settings page how the connection is doing: 'connect' means the sign-in has expired.
+  chrome.storage.local.get('calendarHealth').then(({ calendarHealth }) => {
+    if (calendarHealth !== calendarState) return chrome.storage.local.set({ calendarHealth: calendarState });
+  }).catch(console.error);
   meetingEl.hidden = calendarState === 'off';
   if (meetingEl.hidden) return;
   const label = el('span', 'widget-label', meeting && new Date() >= meeting.start ? 'Now' : 'Next meeting');

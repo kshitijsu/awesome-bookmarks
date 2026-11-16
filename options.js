@@ -61,50 +61,75 @@ $('frequent').onchange = async () => {
 
 // Connect asks Google for read-only calendar access (Google shows its own consent screen);
 // Disconnect revokes it. The token itself stays with Chrome.
-$('calendar-button').onclick = async () => {
-  const button = $('calendar-button');
+// Each connection is in one of these states, with the button doing the next sensible thing:
+// Not connected → Connect · Connecting… · Connected → Disconnect · Sign-in expired → Reconnect · Failed → Reconnect.
+const NEEDS_SETUP = 'Needs a one-time setup: a Google OAuth client ID (see .env.example).';
+const CONNECT_FAILED = "Couldn't connect. Make sure you're signed in to Chrome, then try again.";
+async function connecting(which, run) {
+  const button = $(`${which}-button`), status = $(`${which}-status`);
   button.disabled = true;
-  if (settings.calendar) {
+  button.textContent = 'Connecting…';
+  status.textContent = 'Waiting for Google…';
+  const ok = await run().catch(err => { console.error(err); return false; });
+  button.disabled = false;
+  await refresh();
+  if (!ok) status.textContent = CONNECT_FAILED;
+}
+
+// The new tab reports whether the calendar last loaded ('ok'), lost its sign-in ('connect') or failed ('error').
+const calendarHealth = async () => (await chrome.storage.local.get('calendarHealth')).calendarHealth;
+$('calendar-button').onclick = async () => {
+  const health = await calendarHealth();
+  if (settings.calendar && health !== 'connect') {
+    $('calendar-button').disabled = true;
     await disconnectCalendar();
     await save({ calendar: false });
-  } else if (await connectCalendar()) {
-    await save({ calendar: true });
-  } else {
-    $('calendar-status').textContent = "Couldn't connect. Make sure you're signed in to Chrome, then try again.";
+    $('calendar-button').disabled = false;
+    return;
   }
-  button.disabled = false;
+  await connecting('calendar', async () => {
+    if (!await connectCalendar()) return false;
+    await chrome.storage.local.remove('calendarHealth'); // the next new tab reports afresh
+    await save({ calendar: true });
+    return true;
+  });
 };
 
 // Drive sync is set up per computer (Chrome asks for sign-in on each), so its state lives in local storage.
 $('drive-button').onclick = async () => {
-  const button = $('drive-button');
-  button.disabled = true;
   const drive = await getDrive();
-  if (drive.on && drive.error !== 'failed') await disconnectDrive(settings.calendar);
-  else if (!await connectDrive()) $('drive-status').textContent = "Couldn't connect. Make sure you're signed in to Chrome, then try again.";
-  button.disabled = false;
+  if (drive.on && !['failed', 'expired'].includes(drive.error)) {
+    $('drive-button').disabled = true;
+    await disconnectDrive(settings.calendar);
+    $('drive-button').disabled = false;
+    return;
+  }
+  await connecting('drive', connectDrive);
 };
 
 async function showDrive() {
   const ready = googleConfigured();
   const d = await getDrive();
   $('drive-button').hidden = !ready;
-  $('drive-button').textContent = !d.on ? 'Connect' : d.error === 'failed' ? 'Reconnect' : 'Disconnect';
-  $('drive-status').textContent = !ready ? 'Needs a one-time setup: a Google OAuth client ID (see .env.example).'
+  $('drive-button').textContent = !d.on ? 'Connect' : ['failed', 'expired'].includes(d.error) ? 'Reconnect' : 'Disconnect';
+  $('drive-status').textContent = !ready ? NEEDS_SETUP
     : !d.on ? 'Not connected'
     : d.error === 'too big' ? 'Too big to sync (over 5 MB). Use fewer pictures or a smaller wallpaper.'
-    : d.error === 'failed' ? "Couldn't sync. Make sure you're signed in to Chrome, then reconnect."
+    : d.error === 'expired' ? 'Sign-in expired. Reconnect to keep syncing.'
+    : d.error === 'failed' ? "Couldn't reach Google Drive. It tries again on its own, or reconnect."
     : d.dirty || !d.syncedAt ? 'Syncing…'
-    : `Synced ${new Date(d.syncedAt).toLocaleString()}`;
+    : `Connected · synced ${new Date(d.syncedAt).toLocaleString()}`;
 }
 
-function showCalendar() {
-  const ready = googleConfigured();
+async function showCalendar() {
+  const ready = googleConfigured(), health = settings.calendar ? await calendarHealth() : null;
   $('calendar-button').hidden = !ready;
-  $('calendar-button').textContent = settings.calendar ? 'Disconnect' : 'Connect';
-  $('calendar-status').textContent = !ready
-    ? 'Needs a one-time setup: a Google OAuth client ID (see .env.example).'
-    : settings.calendar ? 'Connected' : 'Not connected';
+  $('calendar-button').textContent = !settings.calendar ? 'Connect' : health === 'connect' ? 'Reconnect' : 'Disconnect';
+  $('calendar-status').textContent = !ready ? NEEDS_SETUP
+    : !settings.calendar ? 'Not connected'
+    : health === 'connect' ? 'Sign-in expired. Reconnect to see your meetings.'
+    : health === 'error' ? "Couldn't reach Google Calendar. The new tab tries again every few minutes."
+    : 'Connected';
 }
 
 // One swatch per wallpaper; keys come from the fixed WALLPAPERS list, never from storage.
@@ -190,7 +215,7 @@ async function refresh() {
   if (document.activeElement !== $('name')) $('name').value = settings.name;
   if (document.activeElement !== $('place')) $('place').value = settings.place?.name || '';
   $('place-status').textContent = settings.place ? 'On the clock' : 'Type a city to show it';
-  showCalendar();
+  await showCalendar();
   await showDrive();
   for (const input of document.querySelectorAll('input[name="wallpaper"]')) {
     input.checked = input.value === (settings.wallpaper === 'custom' && !image ? DEFAULTS.wallpaper : settings.wallpaper);
@@ -409,7 +434,7 @@ document.addEventListener('keydown', e => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (settingsChanged(changes, area) || 'wallpaperImage' in changes || 'daily' in changes || 'drive' in changes) refresh();
+  if (settingsChanged(changes, area) || 'wallpaperImage' in changes || 'daily' in changes || 'drive' in changes || 'calendarHealth' in changes) refresh();
 });
 
 // Side menu: mark the section at the top of the window (the last one whose heading has scrolled past a line

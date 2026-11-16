@@ -438,6 +438,23 @@ try {
     [false, false, false, false, false, false, false, false, false, false, false, false, true, true, true]);
   check('Link check: a redirect counts as working and is never followed', [await ev(`linkProblem('http://127.0.0.1:${SITE}/redirect')`), followed], [null, 0]);
 
+  check('Calendar and Drive: expired and failed states offer Reconnect', await ev(`(async () => {
+    const wait = ms => new Promise(r => setTimeout(r, ms)), real = chrome.runtime.getManifest;
+    chrome.runtime.getManifest = () => ({ ...real(), oauth2: { client_id: 'test.apps.googleusercontent.com' } });
+    const read = () => ['calendar', 'drive'].map(w => [document.getElementById(w + '-status').textContent, document.getElementById(w + '-button').textContent]);
+    await chrome.storage.local.set({ calendarHealth: 'connect', drive: { on: true, error: 'expired', syncedAt: '' } });
+    await chrome.storage.sync.set({ calendar: true }); await wait(400);
+    const expired = read();
+    await chrome.storage.local.set({ calendarHealth: 'error', drive: { on: true, error: 'failed', syncedAt: '' } }); await wait(400);
+    const failed = read();
+    await chrome.storage.local.set({ calendarHealth: 'ok', drive: { on: true, error: '', syncedAt: '2026-01-02T03:04:05Z' } }); await wait(400);
+    const ok = read().map(([s, b]) => [s.split(' · ')[0], b]);
+    await chrome.storage.sync.set({ calendar: false }); await chrome.storage.local.remove(['calendarHealth', 'drive']);
+    chrome.runtime.getManifest = real; await refresh();
+    return [expired, failed, ok]; })()`), [
+    [['Sign-in expired. Reconnect to see your meetings.', 'Reconnect'], ['Sign-in expired. Reconnect to keep syncing.', 'Reconnect']],
+    [["Couldn't reach Google Calendar. The new tab tries again every few minutes.", 'Disconnect'], ["Couldn't reach Google Drive. It tries again on its own, or reconnect.", 'Reconnect']],
+    [['Connected', 'Disconnect'], ['Connected', 'Disconnect']]]);
   check('Settings: six sections, and the side menu marks the one jumped to', await ev(`(async () => {
     const links = [...document.querySelectorAll('#toc a')];
     const sections = links.map(a => document.querySelector(a.hash)?.querySelector('h2')?.textContent);

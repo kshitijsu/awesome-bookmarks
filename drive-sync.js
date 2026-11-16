@@ -10,7 +10,7 @@ const DRIVE_CHECK = 5 * 60_000; // new tabs look for changes from other computer
 const DRIVE_ID_RE = /^[\w-]{1,200}$/;
 
 // This computer's sync state: on, syncedAt (Drive's time for the copy we last matched),
-// checkedAt, dirty (a change not sent yet), error ('' | 'failed' | 'too big').
+// checkedAt, dirty (a change not sent yet), error ('' | 'failed' | 'expired' (signed out) | 'too big').
 async function getDrive() {
   const { drive } = await chrome.storage.local.get('drive');
   return drive && typeof drive === 'object' ? drive : {};
@@ -24,7 +24,7 @@ async function driveToken(interactive) {
 
 async function driveFetch(path, init = {}, retried = false) {
   const token = await driveToken(false);
-  if (!token) throw new Error('Not signed in to Google');
+  if (!token) throw Object.assign(new Error('Not signed in to Google'), { expired: true });
   const res = await fetch(`https://www.googleapis.com/${path}`, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } });
   if (res.status === 401 && !retried) { // expired: Chrome fetches a fresh one
     await chrome.identity.removeCachedAuthToken({ token });
@@ -107,7 +107,7 @@ const syncDrive = (push = false) => (driveRun = driveRun.then(async () => {
     await setDrive({ syncedAt, checkedAt: Date.now(), dirty: false, error: '' });
   } catch (err) {
     console.warn('Drive sync:', err.message);
-    await setDrive({ checkedAt: Date.now(), dirty: send, error: err instanceof RangeError ? 'too big' : 'failed' });
+    await setDrive({ checkedAt: Date.now(), dirty: send, error: err instanceof RangeError ? 'too big' : err.expired ? 'expired' : 'failed' });
   }
 }));
 
