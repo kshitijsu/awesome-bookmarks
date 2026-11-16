@@ -113,8 +113,10 @@ const syncDrive = (push = false) => (driveRun = driveRun.then(async () => {
 
 // Sign-in is the same optional permission the calendar uses, asked for on Connect (so it must run from a click).
 async function connectDrive() {
-  const allowed = await chrome.permissions.request({ permissions: ['identity'] }).catch(() => false);
-  if (!allowed || !await driveToken(true)) return false;
+  if (!await chrome.permissions.request({ permissions: ['identity'] })) throw new Error('permission declined');
+  // Not driveToken(): its errors are swallowed, and the settings page needs Chrome's reason (see googleError).
+  const { token } = await chrome.identity.getAuthToken({ interactive: true, scopes: [DRIVE_SCOPE] });
+  if (!token) throw new Error('no token');
   await setDrive({ on: true, dirty: true, syncedAt: '', error: '' }); // the first sync merges both ways
   syncDrive();
   return true;

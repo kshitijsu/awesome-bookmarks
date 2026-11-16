@@ -438,6 +438,11 @@ try {
     [false, false, false, false, false, false, false, false, false, false, false, false, true, true, true]);
   check('Link check: a redirect counts as working and is never followed', [await ev(`linkProblem('http://127.0.0.1:${SITE}/redirect')`), followed], [null, 0]);
 
+  check('Google connect errors say what to fix', await ev(`[
+    "OAuth2 request failed: Service responded with error: 'bad client id: 123.apps.googleusercontent.com'",
+    'The user is not signed in.', 'The user did not approve access.', 'permission declined', 'Something odd'
+  ].map(m => googleError(new Error(m)).split(/[.:]/)[0])`),
+    ["Google doesn't recognise this extension's OAuth client", 'Sign in to Chrome (the profile icon, top right), then try again', 'Connecting was cancelled', 'Chrome needs the sign-in permission to connect', "Couldn't connect"]);
   check('Calendar and Drive: expired and failed states offer Reconnect', await ev(`(async () => {
     const wait = ms => new Promise(r => setTimeout(r, ms)), real = chrome.runtime.getManifest;
     chrome.runtime.getManifest = () => ({ ...real(), oauth2: { client_id: 'test.apps.googleusercontent.com' } });

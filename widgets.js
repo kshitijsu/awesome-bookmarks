@@ -121,7 +121,11 @@ function showMeeting() {
   if (calendarState === 'connect') {
     const connect = el('button', 'glass-button pill primary', 'Connect Google Calendar');
     connect.type = 'button';
-    connect.onclick = async () => { if (await connectCalendar()) refreshMeeting(); }; // consent needs this click
+    connect.onclick = () => connectCalendar().then(refreshMeeting, err => { // consent needs this click
+      console.warn('Calendar:', err.message);
+      connect.textContent = 'Couldn’t connect: see Settings';
+      connect.title = googleError(err);
+    });
     return meetingEl.replaceChildren(el('span', 'widget-label', 'Next meeting'), connect);
   }
   if (calendarState === 'error') return meetingEl.replaceChildren(label, el('span', 'widget-sub', "Couldn't load your calendar."));

@@ -45,9 +45,25 @@ async function calendarToken(interactive) {
 }
 
 // Sign-in is an optional permission, asked for on the first Connect (so it must run from a click).
+// Throws with Chrome's own reason (bad client ID, not signed in, cancelled…) so the settings page can say what to fix.
 async function connectCalendar() {
-  const allowed = await chrome.permissions.request({ permissions: ['identity'] }).catch(() => false);
-  return allowed && calendarToken(true);
+  if (!await chrome.permissions.request({ permissions: ['identity'] })) throw new Error('permission declined');
+  const { token } = await chrome.identity.getAuthToken({ interactive: true });
+  if (!token) throw new Error('no token');
+  return true;
+}
+
+// Chrome's sign-in errors, in words that say what to do. Anything else is shown as Chrome gave it.
+function googleError(err) {
+  const m = String(err?.message || err);
+  return /permission declined/.test(m) ? 'Chrome needs the sign-in permission to connect. Click Connect and choose Allow.'
+    : /bad client id|invalid.*client|client.*invalid|unauthorized_client/i.test(m)
+      ? `Google doesn't recognise this extension's OAuth client. In Google Cloud, the client must be type "Chrome Extension" with Item ID ${chrome.runtime.id}.`
+    : /not signed in|sign ?in/i.test(m) ? 'Sign in to Chrome (the profile icon, top right), then try again.'
+    : /did not approve|cancel|closed/i.test(m) ? 'Connecting was cancelled.'
+    : /access_denied|not granted|revoked|has not completed the google verification|org_internal|admin/i.test(m)
+      ? 'Google refused access. If the app is in testing, add your Google account as a test user; a work account may need its admin to allow it.'
+    : `Couldn't connect: ${m.slice(0, 200)}`;
 }
 
 // Forget the token here and revoke it at Google, so access really ends; then hand back the permission.

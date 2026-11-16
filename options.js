@@ -64,16 +64,15 @@ $('frequent').onchange = async () => {
 // Each connection is in one of these states, with the button doing the next sensible thing:
 // Not connected → Connect · Connecting… · Connected → Disconnect · Sign-in expired → Reconnect · Failed → Reconnect.
 const NEEDS_SETUP = 'Needs a one-time setup: a Google OAuth client ID (see .env.example).';
-const CONNECT_FAILED = "Couldn't connect. Make sure you're signed in to Chrome, then try again.";
 async function connecting(which, run) {
   const button = $(`${which}-button`), status = $(`${which}-status`);
   button.disabled = true;
   button.textContent = 'Connecting…';
   status.textContent = 'Waiting for Google…';
-  const ok = await run().catch(err => { console.error(err); return false; });
+  const problem = await run().then(() => '', err => { console.warn(`${which}:`, err.message); return googleError(err); });
   button.disabled = false;
   await refresh();
-  if (!ok) status.textContent = CONNECT_FAILED;
+  if (problem) status.textContent = problem;
 }
 
 // The new tab reports whether the calendar last loaded ('ok'), lost its sign-in ('connect') or failed ('error').
@@ -88,10 +87,9 @@ $('calendar-button').onclick = async () => {
     return;
   }
   await connecting('calendar', async () => {
-    if (!await connectCalendar()) return false;
+    await connectCalendar();
     await chrome.storage.local.remove('calendarHealth'); // the next new tab reports afresh
     await save({ calendar: true });
-    return true;
   });
 };
 
