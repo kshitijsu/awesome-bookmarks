@@ -726,8 +726,31 @@ async function useIconFile(file) {
   showEditorIcon();
 }
 editorIconReset.onclick = () => { editorIconChoice = null; showEditorIcon(); };
-editorUrl.addEventListener('change', showEditorIcon); // a new address: preview its site icon
 let editorSave = null; // what Save does for the form currently open
+
+// The address's own error, under it (the form-wide one is for saving failures).
+const urlError = document.getElementById('editor-url-error');
+function showUrlError(message) {
+  urlError.textContent = message;
+  urlError.hidden = !message;
+  if (message) editorUrl.setAttribute('aria-invalid', 'true'); else editorUrl.removeAttribute('aria-invalid');
+}
+const urlProblem = text => !text.trim() ? 'Enter an address, like example.com.'
+  : typedUrl(text) ? '' : "That doesn't look like a web address. Try something like example.com.";
+editorUrl.addEventListener('input', () => showUrlError(''));
+editorUrl.addEventListener('change', () => {
+  if (editorUrl.value.trim()) showUrlError(urlProblem(editorUrl.value)); // empty: only on Save
+  showEditorIcon(); // a new address: preview its site icon
+  nameFromHistory().catch(console.error);
+});
+
+// An empty name gets the page's title from your history, if you've allowed history access (no new permission).
+async function nameFromHistory() {
+  const url = typedUrl(editorUrl.value);
+  if (!url || editorName.value.trim() || !await chrome.permissions.contains({ permissions: ['history'] })) return;
+  const hit = (await chrome.history.search({ text: hostname(url), startTime: 0, maxResults: 100 })).find(h => h.url === url);
+  if (hit?.title && !editorName.value.trim() && typedUrl(editorUrl.value) === url) editorName.value = hit.title.slice(0, 255);
+}
 
 // What the user typed, as a URL we're willing to store: "example.com" gets https://,
 // and only the schemes we can open are accepted (never javascript:).
@@ -744,7 +767,11 @@ function openEditor(heading, fields, withUrl, onSave) {
   document.getElementById('editor-url-field').hidden = !withUrl;
   editorName.value = fields.title || '';
   editorUrl.value = fields.url || '';
+  editorName.placeholder = withUrl ? 'The site name, if left empty' : '';
+  document.querySelector('#editor-name-label .optional').hidden = !withUrl; // a folder's name is the whole form
+  document.getElementById('icon-more').open = false;
   editorError.hidden = true;
+  showUrlError('');
   editorSave = onSave;
   // Bookmarks get an icon row; folders show their contents instead.
   document.getElementById('editor-icon-field').hidden = !withUrl;
@@ -760,13 +787,14 @@ function openEditor(heading, fields, withUrl, onSave) {
 document.getElementById('editor-form').addEventListener('submit', async e => {
   e.preventDefault();
   const title = editorName.value.trim();
-  const url = editor.querySelector('#editor-url-field').hidden ? undefined : typedUrl(editorUrl.value);
-  if (url === null) {
-    editorError.textContent = "That doesn't look like a web address.";
-    editorError.hidden = false;
+  const withUrl = !editor.querySelector('#editor-url-field').hidden;
+  const problem = withUrl && urlProblem(editorUrl.value);
+  if (problem) {
+    showUrlError(problem);
     editorUrl.focus();
     return;
   }
+  const url = withUrl ? typedUrl(editorUrl.value) : undefined;
   try {
     await editorSave({ title, url, icon: editorIconChoice });
     editor.close();
@@ -843,7 +871,7 @@ document.addEventListener('contextmenu', e => {
       dockItem,
       moveItem,
       ['Edit…', () => editBookmark(node)],
-      ['Change icon…', () => { editBookmark(node); (iconChoices.querySelector('[aria-selected="true"]') || iconChoices.firstChild)?.focus(); }],
+      ['Change icon…', () => { editBookmark(node); document.getElementById('icon-more').open = true; (iconChoices.querySelector('[aria-selected="true"]') || iconChoices.firstChild)?.focus(); }],
       ['Copy link', () => navigator.clipboard.writeText(node.url).catch(console.error)],
       ['Delete', () => removeOrReload(node), true],
     ], x, y);

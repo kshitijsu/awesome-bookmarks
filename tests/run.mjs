@@ -175,6 +175,24 @@ try {
   await wait(600);
   check('The chosen emoji shows on the bookmark', await ev(`(async () => { const n = (await chrome.bookmarks.search({ query: 'Site 1' }))[0];
     return document.querySelector('#pager a.app[data-id="' + n.id + '"] .emoji')?.textContent; })()`), '🦊');
+  check('Add bookmark: address errors show under the field; a known page names itself from history', await ev(`(async () => {
+    const wait = ms => new Promise(r => setTimeout(r, ms)), err = document.getElementById('editor-url-error');
+    document.getElementById('add').click(); await wait(200);
+    const folded = !document.getElementById('icon-more').open;
+    document.getElementById('editor-form').requestSubmit(); await wait(100);
+    const empty = [err.hidden, err.textContent, editorUrl.getAttribute('aria-invalid'), document.activeElement === editorUrl];
+    editorUrl.value = 'not an address'; editorUrl.dispatchEvent(new Event('change')); await wait(100);
+    const bad = err.textContent.startsWith("That doesn't look like a web address");
+    editorUrl.dispatchEvent(new Event('input')); const cleared = err.hidden && !editorUrl.hasAttribute('aria-invalid');
+    const realContains = chrome.permissions.contains, realHistory = chrome.history;
+    chrome.permissions.contains = async () => true;
+    Object.defineProperty(chrome, 'history', { configurable: true, value: { search: async () => [{ url: 'https://named.example/page', title: 'Named from history' }] } });
+    editorUrl.value = 'named.example/page'; editorUrl.dispatchEvent(new Event('change')); await wait(200);
+    const named = editorName.value;
+    chrome.permissions.contains = realContains; Object.defineProperty(chrome, 'history', { configurable: true, value: realHistory });
+    editor.close(); await wait(200);
+    return [folded, ...empty, bad, cleared, named]; })()`),
+    [true, false, 'Enter an address, like example.com.', 'true', true, true, true, 'Named from history']);
   // The chooser: open with "Change icon…", pick the site's own icon, then a palette emoji.
   await ev(`(async () => { const n = (await chrome.bookmarks.search({ query: 'Site 2' }))[0]; const t = document.querySelector('#pager a.app[data-id="' + n.id + '"]');
     t.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 })); await new Promise(r => setTimeout(r, 200));

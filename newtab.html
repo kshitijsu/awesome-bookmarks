@@ -104,17 +104,25 @@
   <dialog id="editor" class="glass regular" aria-labelledby="editor-heading">
     <form id="editor-form" novalidate>
       <h2 id="editor-heading"></h2>
-      <label class="field"><span>Name</span><input id="editor-name" maxlength="255" autocomplete="off" spellcheck="false"></label>
-      <label class="field" id="editor-url-field"><span>Address</span><input id="editor-url" inputmode="url" maxlength="2048" placeholder="example.com" autocomplete="off" spellcheck="false"></label>
+      <div class="field" id="editor-url-field">
+        <label for="editor-url">Address <span class="required" aria-hidden="true">*</span></label>
+        <input id="editor-url" inputmode="url" maxlength="2048" placeholder="example.com" autocomplete="off" spellcheck="false" required aria-describedby="editor-url-error">
+        <span id="editor-url-error" class="field-error" hidden></span>
+      </div>
+      <label class="field"><span id="editor-name-label">Name <span class="optional">optional</span></span><input id="editor-name" maxlength="255" autocomplete="off" spellcheck="false"></label>
       <div class="field" id="editor-icon-field">
         <span>Icon</span>
         <div class="icon-picker">
           <div id="editor-icon" class="icon"></div>
           <input id="editor-emoji" class="emoji-input" maxlength="16" placeholder="🙂" autocomplete="off" spellcheck="false" aria-label="Emoji" title="Type or paste an emoji (⌃⌘Space)">
+          <span class="or" aria-hidden="true">or</span>
           <label class="glass thin glass-button pill" title="Or paste or drop an image here">Upload image…<input id="editor-icon-file" type="file" accept="image/*" hidden></label>
           <button id="editor-icon-reset" type="button" class="glass thin glass-button pill" hidden>Reset</button>
         </div>
-        <div id="icon-choices" class="icon-choices" role="listbox" aria-label="Choose an icon"></div>
+        <details id="icon-more" class="icon-more">
+          <summary>More icons</summary>
+          <div id="icon-choices" class="icon-choices" role="listbox" aria-label="Choose an icon"></div>
+        </details>
       </div>
       <p id="editor-error" class="error" role="alert" hidden></p>
       <div class="buttons">
