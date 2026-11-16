@@ -35,7 +35,7 @@ body.ready :is(.search, #pager, #dots, #widgets, #dock) { animation: launch .5s 
   gap: 2px;
   justify-items: start;
   /* never reach the centred search field */
-  max-width: min(300px, calc(50vw - 250px));
+  max-width: min(340px, calc(50vw - 250px));
   min-width: 0;
   padding: 10px 16px 11px;
   border-radius: var(--radius-m);
@@ -51,6 +51,14 @@ body.view-list #view-toggle .show-grid { display: block; }
 #meeting { grid-template-columns: minmax(0, 1fr) auto; column-gap: 14px; }
 #meeting > :not(.join) { grid-column: 1; }
 #meeting > .join { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin: 0; }
+/* Clock card: greeting, time and date on the left; the weather on the right, its temperature level with the time */
+#clock { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "greet greet" "time temp" "date city"; column-gap: 16px; }
+#greeting { grid-area: greet; }
+#clock-toggle { grid-area: time; }
+#clock-sub { grid-area: date; }
+#weather { display: contents; }
+.weather-temp { grid-area: temp; justify-self: end; font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.weather-city { grid-area: city; justify-self: end; max-width: 120px; }
 .clock-time { all: unset; cursor: pointer; border-radius: 6px; font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .clock-time:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .widget-sub { max-width: 100%; overflow: hidden; color: var(--text-2); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }

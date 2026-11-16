@@ -173,7 +173,8 @@ async function showWeather(place) {
       if (!w) { weatherEl.hidden = true; return; } // keep showing the last reading for this place
     }
   }
-  weatherEl.textContent = `${weatherIcon(w.code, w.day)} ${Math.round(w.temp)}° · ${place.name.split(',')[0]}`;
+  // Beside the time: the temperature as large as the time, the city under it.
+  weatherEl.replaceChildren(el('span', 'weather-temp', `${weatherIcon(w.code, w.day)} ${Math.round(w.temp)}°`), el('span', 'widget-sub weather-city', place.name.split(',')[0]));
   weatherEl.title = place.name;
 }
 

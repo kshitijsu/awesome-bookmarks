@@ -332,14 +332,14 @@ try {
     window.fakeCurrent = { temperature_2m: 21.4, weather_code: 0, is_day: 1 };
     await chrome.storage.local.remove('weather');
     await chrome.storage.sync.set({ place: { name: 'Pune, India', lat: 18.52, lon: 73.86 } }); await new Promise(r => setTimeout(r, 500));
-    const w = document.getElementById('weather'), shown = [w.hidden, w.textContent, new URL(asked).hostname];
+    const w = document.getElementById('weather'), shown = [w.hidden, [...w.children].map(c => c.textContent).join(' | '), getComputedStyle(w.firstChild).fontSize === getComputedStyle(document.getElementById('clock-toggle')).fontSize, new URL(asked).hostname];
     window.fakeCurrent = { temperature_2m: '<img src=x>', weather_code: 0 };
     await chrome.storage.local.remove('weather'); await chrome.storage.sync.set({ place: { name: 'Elsewhere', lat: 1, lon: 2 } }); await new Promise(r => setTimeout(r, 500));
     const bad = w.hidden;
     await chrome.storage.sync.remove('place'); await new Promise(r => setTimeout(r, 300));
     window.fetch = real;
     return [...shown, bad, w.hidden];
-  })()`), [false, '☀️ 21° · Pune', 'api.open-meteo.com', true, true]);
+  })()`), [false, '☀️ 21° | Pune', true, 'api.open-meteo.com', true, true]);
   check('Focus timer runs across tabs, then rings and resets', await ev(`(async () => {
     document.getElementById('focus-start').click(); await new Promise(r => setTimeout(r, 200));
     const run = (await chrome.storage.local.get('focus')).focus;
