@@ -411,4 +411,20 @@ document.addEventListener('keydown', e => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (settingsChanged(changes, area) || 'wallpaperImage' in changes || 'daily' in changes || 'drive' in changes) refresh();
 });
+
+// Side menu: mark the section at the top of the window (the last one whose heading has scrolled past a line
+// near the top; at the very bottom, the last section, which may be too short to reach that line).
+// A link you click stays marked while its section is on screen, even when the page can't scroll it to the top.
+const tocLinks = [...document.querySelectorAll('#toc a')];
+let picked = null;
+for (const a of tocLinks) a.addEventListener('click', () => { picked = a; requestAnimationFrame(markSection); }); // also when the page doesn't move
+const markSection = () => {
+  const top = a => document.querySelector(a.hash).getBoundingClientRect().top;
+  if (picked && !(top(picked) >= 0 && top(picked) < innerHeight)) picked = null;
+  const atEnd = innerHeight + scrollY >= document.documentElement.scrollHeight - 2;
+  const current = picked || (atEnd ? tocLinks.at(-1) : tocLinks.findLast(a => top(a) < 120) || tocLinks[0]);
+  for (const a of tocLinks) a.setAttribute('aria-current', a === current);
+};
+addEventListener('scroll', markSection, { passive: true });
+markSection();
 renderFolders().catch(console.error).finally(refresh);

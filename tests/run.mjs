@@ -406,6 +406,13 @@ try {
     [false, false, false, false, false, false, false, false, false, false, false, false, true, true, true]);
   check('Link check: a redirect counts as working and is never followed', [await ev(`linkProblem('http://127.0.0.1:${SITE}/redirect')`), followed], [null, 0]);
 
+  check('Settings: six sections, and the side menu marks the one jumped to', await ev(`(async () => {
+    const links = [...document.querySelectorAll('#toc a')];
+    const sections = links.map(a => document.querySelector(a.hash)?.querySelector('h2')?.textContent);
+    links.find(a => a.hash === '#maintenance').click(); await new Promise(r => setTimeout(r, 300));
+    const marked = document.querySelector('#toc a[aria-current="true"]')?.hash; scrollTo(0, 0);
+    return [sections, marked]; })()`),
+    [['Appearance', 'Widgets', 'Bookmarks', 'Privacy & integrations', 'Maintenance', 'Backup & restore'], '#maintenance']);
   // ---- Settings: backup ----
   check('Keyboard: "Restore…" is a focusable button', await ev(`(() => { const l = document.getElementById('restore').parentElement;
     l.focus(); return [document.activeElement === l, l.role]; })()`), [true, 'button']);

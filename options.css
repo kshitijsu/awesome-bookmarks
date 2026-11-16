@@ -22,7 +22,25 @@ body {
 
 .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.025em; text-shadow: var(--text-shadow); }
-h2 { margin: 22px 0 8px 14px; color: var(--text-2); font-size: 13px; font-weight: 600; }
+h2 { margin: 30px 0 10px 4px; font-size: 19px; font-weight: 650; letter-spacing: -.01em; }
+h3 { margin: 16px 0 8px 14px; color: var(--text-2); font-size: 13px; font-weight: 600; }
+h2 + .group { margin-top: 0; }
+section { scroll-margin-top: 24px; }
+
+/* Side menu: one link per section, sticky beside the card; a row of chips above it on narrow windows */
+.layout { display: grid; grid-template-columns: 190px minmax(0, 580px); gap: 24px; justify-content: center; align-items: start; }
+.glass.toc { position: sticky; top: 56px; display: grid; gap: 2px; padding: 8px; border-radius: var(--radius-m); }
+.toc a { padding: 8px 12px; border-radius: var(--radius-s); color: var(--text-2); font-size: 13.5px; font-weight: 500; text-decoration: none; }
+.toc a:hover { background: rgba(255, 255, 255, .1); color: var(--text); }
+.toc a[aria-current="true"] { background: rgba(255, 255, 255, .16); color: var(--text); font-weight: 600; }
+.toc a:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 580px); gap: 12px; }
+  .glass.toc { top: 8px; z-index: 1; display: flex; flex-wrap: wrap; justify-content: center; }
+  .toc a { padding: 6px 11px; border-radius: var(--radius-pill); }
+  body { padding-top: 16px; }
+  section { scroll-margin-top: 112px; } /* clear of the chips (up to two rows) */
+}
 
 .group {
   border-radius: var(--radius-m);

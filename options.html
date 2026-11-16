@@ -9,6 +9,17 @@
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
+  <div class="layout">
+  <!-- Jump to a group; the one on screen is marked (options.js) -->
+  <nav id="toc" class="toc glass thin" aria-label="Settings sections">
+    <a href="#appearance">Appearance</a>
+    <a href="#widgets">Widgets</a>
+    <a href="#bookmarks">Bookmarks</a>
+    <a href="#integrations">Privacy &amp; integrations</a>
+    <a href="#maintenance">Maintenance</a>
+    <a href="#backup-restore">Backup &amp; restore</a>
+  </nav>
+
   <main class="card glass regular">
     <header class="card-header">
       <h1>Settings</h1>
@@ -17,18 +28,16 @@
       </button>
     </header>
 
-    <section>
-      <h2>Grid</h2>
+    <section id="appearance" aria-labelledby="appearance-heading">
+      <h2 id="appearance-heading">Appearance</h2>
+      <h3>Grid</h3>
       <div class="group">
         <label class="row"><span>Columns</span><span class="select"><select id="cols"></select></span></label>
         <label class="row"><span>Rows</span><span class="select"><select id="rows"></select></span></label>
         <label class="row"><span class="row-text"><span>Emoji icons</span><small class="row-sub">Each bookmark gets an emoji that fits the site</small></span><input id="emoji" class="switch" type="checkbox" role="switch"></label>
       </div>
       <p class="hint">Automatic fits as many icons as the window allows, up to 7 × 5 like Launchpad. Turn emoji icons off to show each site's own icon. A picture or emoji you choose for a bookmark always shows.</p>
-    </section>
-
-    <section>
-      <h2>Wallpaper</h2>
+      <h3>Wallpaper</h3>
       <div class="group">
         <div class="row"><div id="wallpapers" class="swatches" role="radiogroup" aria-label="Wallpaper"></div></div>
         <div class="row">
@@ -44,29 +53,42 @@
       <p class="hint">Photo of the day is Wikimedia Commons' picture of the day, downloaded once a day.</p>
     </section>
 
-    <section>
-      <h2>Widgets</h2>
+    <section id="widgets" aria-labelledby="widgets-heading">
+      <h2 id="widgets-heading">Widgets</h2>
       <div class="group">
         <label class="row"><span>Clock</span><input id="clock" class="switch" type="checkbox" role="switch"></label>
-        <label class="row"><span>Frequent sites</span><input id="frequent" class="switch" type="checkbox" role="switch"></label>
-        <label class="row"><span class="row-text"><span>Weather</span><small id="place-status" class="row-sub"></small></span><input id="place" class="text-input" maxlength="100" autocomplete="off" spellcheck="false" placeholder="City, e.g. Pune"></label>
         <label class="row"><span>Your name, for the greeting</span><input id="name" class="text-input" maxlength="40" autocomplete="given-name" spellcheck="false" placeholder="Optional"></label>
+        <label class="row"><span class="row-text"><span>Weather</span><small id="place-status" class="row-sub"></small></span><input id="place" class="text-input" maxlength="100" autocomplete="off" spellcheck="false" placeholder="City, e.g. Pune"></label>
+        <label class="row"><span>Frequent sites</span><input id="frequent" class="switch" type="checkbox" role="switch"></label>
+      </div>
+      <p class="hint">Weather comes from Open-Meteo: only the city you type is sent, never your location. Frequent sites are Chrome's own most-visited list, read on this computer.</p>
+    </section>
+
+    <section id="bookmarks" aria-labelledby="bookmarks-heading">
+      <h2 id="bookmarks-heading">Bookmarks</h2>
+      <h3>Folders on the home grid</h3>
+      <div id="folders" class="group"></div>
+      <p class="hint">Everything in your Bookmarks bar is always shown. Choose which of Chrome's other top-level folders appear too. Bookmarks, folders and the Dock are Chrome bookmarks, so Chrome already syncs them.</p>
+    </section>
+
+    <section id="integrations" aria-labelledby="integrations-heading">
+      <h2 id="integrations-heading">Privacy &amp; integrations</h2>
+      <div class="group">
         <div class="row">
           <span class="row-text"><span>Next meeting from Google Calendar</span><small id="calendar-status" class="row-sub"></small></span>
           <button id="calendar-button" class="glass thin glass-button pill" type="button"></button>
         </div>
+        <div class="row">
+          <span class="row-text"><span>Sync icons and wallpaper with Google Drive</span><small id="drive-status" class="row-sub"></small></span>
+          <button id="drive-button" class="glass thin glass-button pill" type="button"></button>
+        </div>
       </div>
-      <p class="hint">Frequent sites are Chrome's own most-visited list, read on this computer. Weather comes from Open-Meteo: only the city you type is sent, never your location. Only today's upcoming events are read, on this computer. Nothing is saved or sent anywhere except Google.</p>
+      <p class="hint">Calendar: only today's upcoming events are read, on this computer, and nothing is saved or sent anywhere except Google.</p>
+      <p class="hint">Drive: your chosen bookmark icons and your own wallpaper image are kept in a hidden app folder in your Google Drive, so they follow you to every computer where you connect. The extension can't see anything else in your Drive. To remove the file and the access everywhere, go to your Google Account's third-party access page.</p>
     </section>
 
-    <section>
-      <h2>Folders on the home grid</h2>
-      <div id="folders" class="group"></div>
-      <p class="hint">Everything in your Bookmarks bar is always shown. Choose which of Chrome's other top-level folders appear too.</p>
-    </section>
-
-    <section>
-      <h2>Clean up</h2>
+    <section id="maintenance" aria-labelledby="maintenance-heading">
+      <h2 id="maintenance-heading">Maintenance</h2>
       <div class="group">
         <div class="row">
           <span class="row-text"><span>Duplicate bookmarks</span><small class="row-sub">The same page saved more than once</small></span>
@@ -79,10 +101,11 @@
       </div>
       <p id="cleanup-status" class="hint" role="status"></p>
       <div id="cleanup-results" class="group results" hidden></div>
+      <p class="hint">Checking links asks for access to websites just for the check, and gives it back when done.</p>
     </section>
 
-    <section>
-      <h2>Backup</h2>
+    <section id="backup-restore" aria-labelledby="backup-heading">
+      <h2 id="backup-heading">Backup &amp; restore</h2>
       <div class="group">
         <div class="row">
           <span class="row-text"><span>Settings, tasks and notes</span><small class="row-sub">Save them to a file, or restore from one</small></span>
@@ -93,18 +116,12 @@
         </div>
       </div>
       <p id="backup-status" class="hint" role="status"></p>
-      <div class="group">
-        <div class="row">
-          <span class="row-text"><span>Sync icons and wallpaper with Google Drive</span><small id="drive-status" class="row-sub"></small></span>
-          <button id="drive-button" class="glass thin glass-button pill" type="button"></button>
-        </div>
-      </div>
-      <p class="hint">Your chosen bookmark icons and your own wallpaper image are kept in a hidden app folder in your Google Drive, so they follow you to every computer where you connect. The extension can't see anything else in your Drive. To remove the file and the access everywhere, go to your Google Account's third-party access page.</p>
-      <p class="hint">Bookmarks, folders and the Dock are Chrome bookmarks, so Chrome already syncs them. Checking links asks for access to websites just for the check, and gives it back when done.</p>
+      <p class="hint">Restoring first downloads a copy of what you have now, so you can undo it by restoring that file.</p>
     </section>
 
     <p class="footnote">Changes and tasks save straight away and sync to other computers signed in to Chrome. Your own wallpaper image and bookmark icons stay on this computer unless Google Drive sync is on.</p>
   </main>
+  </div>
 
   <script src="settings.js"></script>
   <script src="drive-sync.js"></script>
