@@ -15,8 +15,10 @@ function tick() {
   document.getElementById('greeting').textContent = `Good ${part}${userName ? `, ${userName}` : ''}`;
   document.getElementById('clock-time').textContent = timeOf(now);
   document.getElementById('clock-time').dateTime = now.toISOString();
-  document.getElementById('clock-sub').textContent =
-    `${now.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })} · ${zone.replaceAll('_', ' ')} (${offset})`;
+  // Short: the date and the zone's city ("Asia/Calcutta" → "Calcutta"); the full zone and offset on hover.
+  const sub = document.getElementById('clock-sub');
+  sub.textContent = `${now.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })} · ${zone.split('/').pop().replaceAll('_', ' ')}`;
+  sub.title = `${zone.replaceAll('_', ' ')} (${offset})`;
   if (meeting) showMeeting(); // keep "in 12 min" current
   if (meeting && now >= meeting.end) refreshMeeting(); // it's over: look for the next one
 }
