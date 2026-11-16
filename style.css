@@ -42,12 +42,10 @@ body.ready :is(.greeting, .search, #pager, #dots, #widgets, #dock) { animation: 
   pointer-events: auto;
 }
 /* Join sits beside the details, keeping the card as short as the clock so it never reaches the grid */
-/* Right corner: the meeting card, the focus timer, then the view, add and tasks buttons */
+/* Right corner: the meeting card, the focus timer, then the add and tasks buttons */
 .widgets-end { display: flex; align-items: flex-start; gap: 8px; min-width: 0; margin-left: auto; }
-:is(#view-toggle, #add) { flex: none; color: var(--text-2); pointer-events: auto; }
-:is(#view-toggle, #add):hover { color: var(--text); }
-#view-toggle .show-grid, body.view-list #view-toggle .show-list { display: none; }
-body.view-list #view-toggle .show-grid { display: block; }
+#add { flex: none; color: var(--text-2); pointer-events: auto; }
+#add:hover { color: var(--text); }
 #meeting { grid-template-columns: minmax(0, 1fr) auto; column-gap: 14px; }
 #meeting > :not(.join) { grid-column: 1; }
 #meeting > .join { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin: 0; }

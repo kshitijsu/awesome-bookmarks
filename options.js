@@ -24,6 +24,7 @@ function range([lo, hi]) {
 $('cols').append(option(0, 'Automatic'), ...range(LIMITS.cols).map(n => option(n, n)));
 $('rows').append(option(0, 'Automatic'), ...range(LIMITS.rows).map(n => option(n, n)));
 $('cols').onchange = () => save({ cols: Number($('cols').value) });
+$('view').onchange = () => save({ view: $('view').value === 'list' ? 'list' : 'grid' });
 $('rows').onchange = () => save({ rows: Number($('rows').value) });
 $('blur').onchange = () => save({ blur: $('blur').checked });
 $('emoji').onchange = () => save({ emoji: $('emoji').checked });
@@ -204,6 +205,7 @@ async function renderFolders() {
 async function refresh() {
   settings = await getSettings();
   const image = await getWallpaperImage();
+  $('view').value = settings.view;
   $('cols').value = settings.cols;
   $('rows').value = settings.rows;
   $('blur').checked = settings.blur;

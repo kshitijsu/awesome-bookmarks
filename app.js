@@ -1137,9 +1137,7 @@ document.addEventListener('click', e => {
 // One card per folder, its bookmarks as rows. Bookmarks not in any folder are grouped by website;
 // a website with just one bookmark isn't grouped: that bookmark stands on its own.
 const listEl = document.getElementById('list');
-const viewToggle = document.getElementById('view-toggle');
 let collapsed = new Set(); // cards folded shut, on this computer: folder ids or "site:<host>"
-viewToggle.onclick = () => chrome.storage.sync.set({ view: settings.view === 'list' ? 'grid' : 'list' }).catch(console.error);
 const site = url => hostname(url).replace(/^www\./, '') || scheme(url).replace(':', '');
 
 function listRow(node) {
@@ -1283,9 +1281,7 @@ function render() {
   webSearch.textContent = `Search the web for “${search.value.trim()}”`;
   // List view shows the home page as cards; a search always shows its results as tiles.
   const listView = settings.view === 'list' && !q && topItems.length > 0;
-  document.body.classList.toggle('view-list', settings.view === 'list');
   document.body.classList.toggle('list-view', listView);
-  viewToggle.title = viewToggle.ariaLabel = settings.view === 'list' ? 'Show as icons' : 'Show as list';
   listEl.hidden = !listView;
   if (listView) renderList();
   main.set(items, bar, !q); // search results mix folders, so they can't be reordered
