@@ -16,8 +16,8 @@ body {
 
 /* Opening: everything settles in from 106% while fading in, once the bookmarks are drawn.
    (No blur in the animation: blurring the whole page each frame stalled it.) */
-body:not(.ready) :is(.search, #pager, #dots, #widgets, #dock) { opacity: 0; }
-body.ready :is(.search, #pager, #dots, #widgets, #dock) { animation: launch .5s var(--ease); }
+body:not(.ready) :is(.greeting, .search, #pager, #dots, #widgets, #dock) { opacity: 0; }
+body.ready :is(.greeting, .search, #pager, #dots, #widgets, #dock) { animation: launch .5s var(--ease); }
 
 /* ---- Widgets: thin-glass cards in the top corners (a row above the search field on narrow screens) ---- */
 #widgets {
@@ -51,9 +51,8 @@ body.view-list #view-toggle .show-grid { display: block; }
 #meeting { grid-template-columns: minmax(0, 1fr) auto; column-gap: 14px; }
 #meeting > :not(.join) { grid-column: 1; }
 #meeting > .join { grid-column: 2; grid-row: 1 / span 3; align-self: center; margin: 0; }
-/* Clock card: greeting, time and date on the left; the weather on the right, its temperature level with the time */
-#clock { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "greet greet" "time temp" "date city"; column-gap: 16px; }
-#greeting { grid-area: greet; }
+/* Clock card: time and date on the left; the weather on the right, its temperature level with the time */
+#clock { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "time temp" "date city"; column-gap: 16px; }
 #clock-toggle { grid-area: time; }
 #clock-sub { grid-area: date; }
 #weather { display: contents; }
@@ -62,7 +61,11 @@ body.view-list #view-toggle .show-grid { display: block; }
 .clock-time { all: unset; cursor: pointer; border-radius: 6px; font-size: 26px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .clock-time:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 .widget-sub { max-width: 100%; overflow: hidden; color: var(--text-2); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
-.greeting { font-size: 12.5px; }
+/* The greeting heads the page, centred above the search field */
+.greeting { flex: none; margin: 0 auto 14px; font-size: 28px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2; text-align: center; text-shadow: var(--text-shadow); }
+.greeting:empty { display: none; }
+body.no-bookmarks .greeting { margin-top: auto; }
+body.no-bookmarks .greeting + .search { margin-top: 0; }
 .widget-label { color: var(--text-2); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
 .widget-title {
   max-width: 100%;
@@ -729,7 +732,7 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
 /* macOS "Reduce motion": pages snap, nothing zooms, swells or wobbles (JS animations check this too) */
 @media (prefers-reduced-motion: reduce) {
   .track, .icon, .search, .dots button, .delete { transition: none; }
-  body.ready :is(.search, #pager, #dots, #widgets, #dock), body.jiggle .app .icon, .menu:popover-open, .toast:popover-open, #editor[open], #importer[open], #drawer::backdrop { animation: none; }
+  body.ready :is(.greeting, .search, #pager, #dots, #widgets, #dock), body.jiggle .app .icon, .menu:popover-open, .toast:popover-open, #editor[open], #importer[open], #drawer::backdrop { animation: none; }
   .dock { transition: none; }
   .app { transition: none; } /* hover still enlarges, just without the spring */
 }

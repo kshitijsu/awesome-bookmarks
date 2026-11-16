@@ -1,4 +1,4 @@
-// Widgets on the new tab: a clock with a greeting, the next meeting from Google Calendar, and a row of frequent sites.
+// Widgets on the new tab: a greeting above the search field, a clock, the next meeting from Google Calendar, and a row of frequent sites.
 const clockEl = document.getElementById('clock');
 const meetingEl = document.getElementById('meeting');
 let hour12; // undefined: the computer's own 12/24-hour style
