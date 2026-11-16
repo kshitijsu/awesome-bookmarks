@@ -72,7 +72,7 @@ function historyRow(h, saved) {
   icon.append(img({ url: h.url, title })); // the grid's icon logic: favicon, or a letter tile when there's none
   text.append(el('span', 'history-title', title), el('span', 'history-url', h.url.replace(/^https?:\/\//, '')));
   row.title = h.url;
-  row.append(box, icon, text, el('span', 'history-count', saved ? 'Saved' : `${h.visitCount}×`));
+  row.append(box, icon, text, saved ? el('span', 'history-count saved', '✓ Already saved') : el('span', 'history-count', `${h.visitCount}×`));
   return row;
 }
 
@@ -92,10 +92,17 @@ function updateAddButton() {
 importerAdd.onclick = async () => {
   importerAdd.disabled = true;
   try {
-    let parentId = importerFolder.value;
-    if (parentId === NEW_FOLDER) parentId = (await chrome.bookmarks.create({ parentId: bar.id, title: importerName.value.trim() })).id;
-    for (const [url, title] of picked) await chrome.bookmarks.create({ parentId, title, url });
+    let parentId = importerFolder.value, folderName = importerFolder.selectedOptions[0]?.textContent.trim();
+    const newFolder = parentId === NEW_FOLDER && await chrome.bookmarks.create({ parentId: bar.id, title: importerName.value.trim() });
+    if (newFolder) [parentId, folderName] = [newFolder.id, newFolder.title];
+    const made = [];
+    for (const [url, title] of picked) made.push(await chrome.bookmarks.create({ parentId, title, url }));
     importer.close();
+    // Say where they went, with an Undo like deleting has.
+    offerUndo(`Added ${made.length} bookmark${made.length === 1 ? '' : 's'} to ${folderName}`, async () => {
+      if (newFolder) await chrome.bookmarks.removeTree(newFolder.id);
+      else for (const b of made) await chrome.bookmarks.remove(b.id);
+    });
   } catch (err) {
     console.error(err);
     importerNote.textContent = "Couldn't add them. Please try again.";

@@ -287,6 +287,20 @@ try {
   check('"/" jumps to search without typing a slash', await ev(`(() => { document.activeElement?.blur();
     document.dispatchEvent(new KeyboardEvent('keydown', { key: '/', bubbles: true, cancelable: true }));
     const r = [document.activeElement === search, search.value]; search.blur(); return r; })()`), [true, '']);
+  check('History import: saved rows get a badge; adding says where, with Undo', await ev(`(async () => {
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const savedRow = historyRow({ url: 'https://saved.example/', title: 'Saved one', visitCount: 3 }, true);
+    const badge = [savedRow.querySelector('.history-count.saved')?.textContent, savedRow.querySelector('input').disabled];
+    importerFolder.replaceChildren(new Option('Bookmarks bar', bar.id)); importerFolder.value = bar.id;
+    picked.clear(); picked.set('https://imported.example/', 'Imported'); updateAddButton();
+    const label = importerAdd.textContent;
+    importerAdd.click(); await wait(500);
+    const added = (await chrome.bookmarks.search({ url: 'https://imported.example/' })).length;
+    const said = document.querySelector('#toast span').textContent;
+    document.querySelector('#toast button').click(); await wait(500);
+    picked.clear();
+    return [...badge, label, added, said, (await chrome.bookmarks.search({ url: 'https://imported.example/' })).length]; })()`),
+    ['✓ Already saved', true, 'Add 1 bookmark', 1, 'Added 1 bookmark to Bookmarks bar', 0]);
   check('"Move to…" in the menu lists folders and moves the bookmark', await ev(`(async () => {
     const b = (await chrome.bookmarks.getTree())[0].children[0].id, wait = ms => new Promise(r => setTimeout(r, ms));
     const f = await chrome.bookmarks.create({ parentId: b, title: 'Move here', index: 0 });
