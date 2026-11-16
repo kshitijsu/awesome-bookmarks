@@ -758,18 +758,21 @@ body.ready .list { animation: launch .5s var(--ease); }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 10px 8px;
+  min-height: 40px;
+  padding: 8px 10px;
   border-radius: var(--radius-s);
   list-style: none;
   cursor: pointer;
+  transition: background var(--fast);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: .06em;
   text-transform: uppercase;
 }
 .list-card summary::-webkit-details-marker { display: none; }
-.list-card summary::before { content: ""; width: 6px; height: 6px; margin: 0 4px 2px 2px; border: solid var(--text-2); border-width: 0 1.5px 1.5px 0; rotate: 45deg; transition: rotate var(--medium) var(--ease); }
+.list-card summary::before { content: ""; flex: none; width: 8px; height: 8px; margin: 0 6px 3px 4px; border: solid var(--text-2); border-width: 0 1.5px 1.5px 0; rotate: 45deg; transition: rotate var(--medium) var(--ease); }
 .list-card details:not([open]) summary::before { rotate: -45deg; }
+.list-card summary:hover { background: rgba(255, 255, 255, .08); } /* the whole header folds the card, not just the arrow */
 .list-card summary:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 /* About 8 rows, then the folder scrolls inside its card; the half-visible next row shows there's more */
 .list-rows { max-height: calc(8.5 * var(--list-row, 50px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, .3) transparent; }
