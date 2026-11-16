@@ -61,6 +61,8 @@ function googleError(err) {
       ? `Google doesn't recognise this extension's OAuth client. In Google Cloud, the client must be type "Chrome Extension" with Item ID ${chrome.runtime.id}.`
     : /not signed in|sign ?in/i.test(m) ? 'Sign in to Chrome (the profile icon, top right), then try again.'
     : /did not approve|cancel|closed/i.test(m) ? 'Connecting was cancelled.'
+    : /service has been disabled/i.test(m)
+      ? "Your Google account's admin has turned this off (common with work accounts). Use Chrome with a personal Google account, or ask your admin to allow the app."
     : /access_denied|not granted|revoked|has not completed the google verification|org_internal|admin/i.test(m)
       ? 'Google refused access. If the app is in testing, add your Google account as a test user; a work account may need its admin to allow it.'
     : `Couldn't connect: ${m.slice(0, 200)}`;
