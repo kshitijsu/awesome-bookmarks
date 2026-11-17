@@ -298,6 +298,21 @@ body.no-bookmarks #dots { display: none; }
   line-height: 1;
 }
 .icon:has(> .emoji) { background: none; }
+/* Brand logo: the white logo on the brand's colour, lit a little at the top like the other tiles */
+.brand {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 82%, #fff), var(--brand) 55%);
+}
+.brand img { width: 56%; height: 56%; -webkit-user-drag: none; }
+.brand img.dark { filter: invert(1) brightness(.18); }
+.icon:has(> .brand) { background: none; }
+.icon.folder .brand { aspect-ratio: 1; height: auto; box-shadow: 0 1px 2px rgba(0, 0, 0, .18); }
+.frequent-site > .brand { width: 32px; height: 32px; border-radius: var(--radius-icon); box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.list-row .icon .brand img, .history-icon .brand img { width: 58%; height: 58%; }
 .icon.folder .emoji { aspect-ratio: 1; height: auto; border-radius: var(--radius-icon); font-size: calc(var(--icon) * var(--grow) * .14); box-shadow: 0 1px 2px rgba(0, 0, 0, .18); }
 .icon.folder .letter { aspect-ratio: 1; height: auto; border-radius: var(--radius-icon); font-size: calc(var(--icon) * var(--grow) * .15); text-shadow: none; box-shadow: 0 1px 2px rgba(0, 0, 0, .18); }
 

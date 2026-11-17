@@ -162,10 +162,35 @@ try {
   check('Emoji picked from the site', await ev(`[['https://mail.google.com/', 'Inbox'], ['https://github.com/x', 'Code'], ['https://www.youtube.com/', ''], ['https://www.amazon.in/', 'Amazon'],
     ['https://docs.google.com/document/d/1', 'Plan'], ['chrome://settings', 'Settings'], ['https://some-unknown.example/', 'Thing']].map(([url, title]) => emojiFor({ url, title }))`),
     ['📧', '🐙', '🎬', '🛒', '📝', '⚙️', await ev(`emojiFor({ url: 'https://some-unknown.example/', title: 'Thing' })`)]);
-  check('Emoji icons are on by default', await ev(`(() => { const t = document.querySelector('#pager a.app .icon'); return { setting: settings.emoji, emoji: !!t.querySelector('.emoji') }; })()`), { setting: true, emoji: true });
-  await ev(`(async () => { await chrome.storage.sync.set({ emoji: false }); await new Promise(r => setTimeout(r, 600)); })()`);
-  check('Turning them off shows site icons', await ev(`!!document.querySelector('#pager a.app .icon .emoji')`), false);
-  await ev(`(async () => { await chrome.storage.sync.set({ emoji: true }); await new Promise(r => setTimeout(r, 600)); })()`);
+  // ---- Brand logos (and the Icons setting) ----
+  check('Brand logo found by host, domain or site name', await ev(`['https://github.com/org/repo', 'https://www.youtube.com/', 'https://mail.google.com/mail/u/0',
+    'https://shop.github.co.uk/', 'https://unknown.example/', 'chrome://settings'].map(u => brandFor(u)?.slug ?? null)`),
+    ['github', 'youtube', 'gmail', 'github', null, null]);
+  check('Every logo in the index exists', await ev(`(async () => { const slugs = [...new Set([...brands.values()].map(b => b.slug))];
+    const missing = []; for (const s of slugs) if (!(await fetch('brand/' + s + '.svg')).ok) missing.push(s); return [slugs.length > 3000, missing]; })()`), [true, []]);
+  check('Icons: brand logos by default; others keep their site icon', await ev(`(async () => {
+    const b = (await chrome.bookmarks.getTree())[0].children[0].id;
+    window.gh = await chrome.bookmarks.create({ parentId: b, title: 'GitHub', url: 'https://github.com/', index: 0 }); await new Promise(r => setTimeout(r, 600));
+    const tile = document.querySelector('#pager a.app[data-id="' + gh.id + '"] .icon .brand');
+    const other = document.querySelector('#pager a.app:not([data-id="' + gh.id + '"]) .icon');
+    return [settings.iconStyle, tile?.style.getPropertyValue('--brand'), tile?.querySelector('img').getAttribute('src'), !!other.querySelector('.brand, .emoji')]; })()`),
+    ['brand', '#181717', 'brand/github.svg', false]);
+  await ev(`(async () => { await chrome.storage.sync.set({ iconStyle: 'emoji' }); await new Promise(r => setTimeout(r, 600)); })()`);
+  check('Icons: emoji style', await ev(`!!document.querySelector('#pager a.app[data-id="' + gh.id + '"] .icon .emoji')`), true);
+  await ev(`(async () => { await chrome.storage.sync.set({ iconStyle: 'site' }); await new Promise(r => setTimeout(r, 600)); })()`);
+  check('Icons: site icons style', await ev(`!!document.querySelector('#pager a.app[data-id="' + gh.id + '"] .icon :is(.brand, .emoji)')`), false);
+  await ev(`(async () => { await chrome.storage.sync.set({ iconStyle: 'brand' }); await chrome.bookmarks.remove(gh.id); await new Promise(r => setTimeout(r, 600)); })()`);
+  check('The chooser offers "Brand logo", and "Letter" overrides it', await ev(`(async () => {
+    const b = (await chrome.bookmarks.getTree())[0].children[0].id, wait = ms => new Promise(r => setTimeout(r, ms));
+    const n = await chrome.bookmarks.create({ parentId: b, title: 'Lab', url: 'https://gitlab.com/', index: 0 }); await wait(600);
+    editBookmark(nodes.get(n.id)); await wait(200);
+    const offered = [...iconChoices.children].map(c => c.title).slice(1, 4);
+    iconChoices.querySelector('[title="Letter"]').click(); document.getElementById('editor-form').requestSubmit(); await wait(600);
+    const letter = !!document.querySelector('#pager a.app[data-id="' + n.id + '"] .icon .letter');
+    await setIcon(n.id, null); await chrome.bookmarks.remove(n.id); await wait(400);
+    return [offered, letter]; })()`), [["Site's own icon", 'Brand logo', 'Letter'], true]);
+  check('An older "emoji off" setting becomes site icons', await ev(`[sanitize({ emoji: false }).iconStyle, sanitize({ emoji: true }).iconStyle, sanitize({ iconStyle: 'nope' }).iconStyle]`), ['site', 'brand', 'brand']);
+  await ev(`(async () => { await chrome.storage.sync.set({ iconStyle: 'emoji' }); await new Promise(r => setTimeout(r, 600)); })()`); // the emoji tests below
   await ev(`(async () => { const n = (await chrome.bookmarks.search({ query: 'Site 1' }))[0]; editBookmark(nodes.get(n.id)); })()`);
   await click('#editor-emoji');
   await send('Input.insertText', { text: '🦊 fox' });
@@ -462,6 +487,10 @@ try {
     [['Sign-in expired. Reconnect to see your meetings.', 'Reconnect'], ['Sign-in expired. Reconnect to keep syncing.', 'Reconnect']],
     [["Couldn't reach Google Calendar. The new tab tries again every few minutes.", 'Disconnect'], ["Couldn't reach Google Drive. It tries again on its own, or reconnect.", 'Reconnect']],
     [['Connected', 'Disconnect'], ['Connected', 'Disconnect']]]);
+  check('Settings: the Icons select saves the style', await ev(`(async () => {
+    const s = document.getElementById('icon-style'), before = s.value; s.value = 'site'; s.dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 300));
+    const saved = (await chrome.storage.sync.get('iconStyle')).iconStyle; s.value = before; s.dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 300));
+    return saved; })()`), 'site');
   check('Settings: "Show bookmarks as" switches between icons and list', await ev(`(async () => {
     const v = document.getElementById('view'); v.value = 'list'; v.dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 300));
     const saved = (await chrome.storage.sync.get('view')).view;

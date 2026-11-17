@@ -114,6 +114,42 @@ function emojiTile(node, emoji = emojiFor(node)) {
   return span;
 }
 
+// ---- Brand logos ----
+// Simple Icons logos bundled in brand/ (see tools/build-brand-icons.mjs): the site's logo in white on its brand
+// colour. brand/index.json maps a host ("mail.google.com") or a site's name ("github") to [slug, hex, light].
+const brands = new Map();
+async function loadBrands() {
+  try {
+    const index = await (await fetch(chrome.runtime.getURL('brand/index.json'))).json();
+    for (const [key, b] of Object.entries(index && typeof index === 'object' ? index : {})) {
+      if (Array.isArray(b) && /^[a-z0-9]{1,60}$/.test(b[0]) && /^[0-9A-F]{6}$/.test(b[1])) brands.set(key, { slug: b[0], hex: b[1], light: b[2] === true });
+    }
+  } catch (err) { console.warn('Brand logos:', err.message); } // no logos: tiles fall back to site icons
+}
+const TWO_LEVEL = new Set(['co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'co.in', 'co.jp', 'com.au', 'co.nz', 'com.br', 'co.za']);
+// Exact host first (one domain, several products), then the site's domain, then its name: github.com → "github".
+function brandFor(url) {
+  if (!['http:', 'https:'].includes(scheme(url))) return null;
+  const host = hostname(url).toLowerCase().replace(/^www\./, '');
+  const parts = host.split('.'), n = TWO_LEVEL.has(parts.slice(-2).join('.')) ? 3 : 2;
+  if (parts.length < n) return null;
+  return brands.get(host) || brands.get(parts.slice(-n).join('.')) || brands.get(parts.at(-n)) || null;
+}
+function brandTile(node) {
+  const b = brandFor(node.url);
+  if (!b) return null;
+  const span = document.createElement('span');
+  const logo = document.createElement('img');
+  span.className = 'brand';
+  span.style.setProperty('--brand', `#${b.hex}`);
+  logo.src = `brand/${b.slug}.svg`;
+  logo.alt = '';
+  logo.draggable = false;
+  if (b.light) logo.className = 'dark'; // a pale brand colour gets a dark logo
+  span.append(logo);
+  return span;
+}
+
 // Sites already found to have no icon: re-renders (every search keystroke) draw their letter
 // straight away instead of flashing the globe again.
 const noIcon = new Set();
@@ -154,7 +190,8 @@ async function iconFromFile(file) {
 
 // A chosen picture fills the tile; a chosen emoji sits on the same soft tile as automatic ones.
 function customIcon(node, custom) {
-  if (custom === 'site') return node.url ? img({ ...node, id: undefined }) : letterTile(node);
+  if (custom === 'site') return node.url ? siteIcon(node) : letterTile(node);
+  if (custom === 'brand') return brandTile(node) || siteIcon(node);
   if (custom === 'letter') return letterTile(node);
   if (!isPicture(custom)) return emojiTile(node, custom);
   const i = document.createElement('img');
@@ -165,9 +202,17 @@ function customIcon(node, custom) {
   return i;
 }
 
+// A bookmark's icon: the one chosen for it, else the Icons setting's style (brand logo, emoji or site icon).
 function img(node) {
   if (icons.has(node.id)) return customIcon(node, icons.get(node.id));
-  if (settings.emoji && node.id) return emojiTile(node); // bookmarks only: not history rows or frequent sites
+  return autoIcon(node);
+}
+function autoIcon(node) {
+  if (settings.iconStyle === 'emoji' && node.id) return emojiTile(node); // bookmarks only: not history rows or frequent sites
+  return (settings.iconStyle === 'brand' && brandTile(node)) || siteIcon(node);
+}
+// The site's own favicon, or its letter when it has none.
+function siteIcon(node) {
   if (noIcon.has(node.url)) return letterTile(node);
   const i = document.createElement('img');
   i.src = favicon(node.url);
@@ -630,8 +675,8 @@ const uploadGlyph = document.getElementById('upload-glyph').content.firstElement
 // The picture chosen in this dialog: undefined = leave as is, null = back to the site's icon, or a data URL.
 let editorIconChoice, editorNode;
 
-// What a bookmark shows with nothing chosen: its emoji, or the site's icon when emoji icons are off.
-const defaultIcon = node => settings.emoji ? emojiTile(node) : node.url ? img({ ...node, id: undefined }) : letterTile(node);
+// What a bookmark shows with nothing chosen (a new one has no id yet, but still previews its emoji).
+const defaultIcon = node => settings.iconStyle === 'emoji' ? emojiTile(node) : node.url ? autoIcon(node) : letterTile(node);
 
 // A few dozen to pick from; the ones that suit this site come first.
 const ICON_PALETTE = ['🔖', '⭐', '📌', '💡', '🧭', '🎯', '🧩', '🌈', '🍀', '🪐', '🔷', '🌟',
@@ -656,7 +701,7 @@ function showEditorIcon() {
 function showIconChoices(node, current) {
   const suggested = emojiFor(node);
   const picture = current && isPicture(current) ? [current] : [];
-  const values = [...picture, 'site', 'letter', suggested, ...ICON_PALETTE.filter(e => e !== suggested)];
+  const values = [...picture, 'site', ...(brandFor(node.url) ? ['brand'] : []), 'letter', suggested, ...ICON_PALETTE.filter(e => e !== suggested)];
   const upload = document.createElement('button');
   upload.type = 'button';
   upload.className = 'choice upload';
@@ -671,7 +716,7 @@ function showIconChoices(node, current) {
     b.className = 'choice';
     b.setAttribute('role', 'option');
     b.setAttribute('aria-selected', v === current);
-    b.title = v === 'site' ? "Site's own icon" : v === 'letter' ? 'Letter' : isPicture(v) ? 'Your image' : v;
+    b.title = v === 'site' ? "Site's own icon" : v === 'brand' ? 'Brand logo' : v === 'letter' ? 'Letter' : isPicture(v) ? 'Your image' : v;
     b.setAttribute('aria-label', b.title);
     tile.className = 'icon';
     tile.append(customIcon(node, v));
@@ -1297,6 +1342,7 @@ async function load() {
   nodes = new Map();
   (function walk(n) { nodes.set(n.id, n); n.children?.forEach(walk); })(root);
   icons = await readIcons();
+  if (!brands.size) await loadBrands(); // once per tab
   const stored = (await chrome.storage.local.get('collapsed')).collapsed;
   collapsed = new Set(Array.isArray(stored) ? stored.filter(k => typeof k === 'string' && k.length <= 300).slice(0, 500) : []);
   // Pictures of deleted bookmarks are dropped (Undo keeps its own copy). Ids are never reused.

@@ -27,7 +27,7 @@ $('cols').onchange = () => save({ cols: Number($('cols').value) });
 $('view').onchange = () => save({ view: $('view').value === 'list' ? 'list' : 'grid' });
 $('rows').onchange = () => save({ rows: Number($('rows').value) });
 $('blur').onchange = () => save({ blur: $('blur').checked });
-$('emoji').onchange = () => save({ emoji: $('emoji').checked });
+$('icon-style').onchange = () => save({ iconStyle: ICON_STYLES.includes($('icon-style').value) ? $('icon-style').value : DEFAULTS.iconStyle });
 $('clock').onchange = () => save({ clock: $('clock').checked });
 $('name').onchange = () => save({ name: $('name').value });
 
@@ -209,7 +209,7 @@ async function refresh() {
   $('cols').value = settings.cols;
   $('rows').value = settings.rows;
   $('blur').checked = settings.blur;
-  $('emoji').checked = settings.emoji;
+  $('icon-style').value = settings.iconStyle;
   $('clock').checked = settings.clock;
   $('frequent').checked = settings.frequent;
   if (document.activeElement !== $('name')) $('name').value = settings.name;
