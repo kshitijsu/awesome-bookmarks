@@ -175,6 +175,14 @@ try {
     const other = document.querySelector('#pager a.app:not([data-id="' + gh.id + '"]) .icon');
     return [settings.iconStyle, tile?.style.getPropertyValue('--brand'), tile?.querySelector('img').getAttribute('src'), !!other.querySelector('.brand, .emoji')]; })()`),
     ['brand', '#181717', 'brand/github.svg', false]);
+  check('A brand logo in a folder preview is drawn on its colour, not a white square', await ev(`(async () => {
+    const b = (await chrome.bookmarks.getTree())[0].children[0].id;
+    const f = await chrome.bookmarks.create({ parentId: b, title: 'Preview folder', index: 0 });
+    await chrome.bookmarks.create({ parentId: f.id, title: 'GitLab', url: 'https://gitlab.com/' }); await new Promise(r => setTimeout(r, 600));
+    const logo = document.querySelector('#pager .app[data-id="' + f.id + '"] .icon.folder .brand img');
+    const r = logo && getComputedStyle(logo).backgroundColor;
+    await chrome.bookmarks.removeTree(f.id); await new Promise(r => setTimeout(r, 400));
+    return r; })()`), 'rgba(0, 0, 0, 0)');
   await ev(`(async () => { await chrome.storage.sync.set({ iconStyle: 'emoji' }); await new Promise(r => setTimeout(r, 600)); })()`);
   check('Icons: emoji style', await ev(`!!document.querySelector('#pager a.app[data-id="' + gh.id + '"] .icon .emoji')`), true);
   await ev(`(async () => { await chrome.storage.sync.set({ iconStyle: 'site' }); await new Promise(r => setTimeout(r, 600)); })()`);
