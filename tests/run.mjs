@@ -189,6 +189,17 @@ try {
     const letter = !!document.querySelector('#pager a.app[data-id="' + n.id + '"] .icon .letter');
     await setIcon(n.id, null); await chrome.bookmarks.remove(n.id); await wait(400);
     return [offered, letter]; })()`), [["Site's own icon", 'Brand logo', 'Letter'], true]);
+  // ---- Theme ----
+  const theme = async (media, choice) => {
+    await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: media }] });
+    await ev(`chrome.storage.sync.set({ theme: '${choice}' }).then(() => new Promise(r => setTimeout(r, 500)))`);
+    return ev(`document.documentElement.dataset.theme`);
+  };
+  check('Theme: System follows the computer; Light and Dark override it', [
+    await theme('dark', 'system'), await theme('light', 'system'), await theme('light', 'dark'), await theme('dark', 'light'),
+    await ev(`[sanitize({}).theme, sanitize({ theme: '<b>' }).theme]`)],
+    ['dark', 'light', 'dark', 'light', ['system', 'system']]);
+  await theme('', 'system');
   check('An older "emoji off" setting becomes site icons', await ev(`[sanitize({ emoji: false }).iconStyle, sanitize({ emoji: true }).iconStyle, sanitize({ iconStyle: 'nope' }).iconStyle]`), ['site', 'brand', 'brand']);
   await ev(`(async () => { await chrome.storage.sync.set({ iconStyle: 'emoji' }); await new Promise(r => setTimeout(r, 600)); })()`); // the emoji tests below
   await ev(`(async () => { const n = (await chrome.bookmarks.search({ query: 'Site 1' }))[0]; editBookmark(nodes.get(n.id)); })()`);
@@ -487,6 +498,10 @@ try {
     [['Sign-in expired. Reconnect to see your meetings.', 'Reconnect'], ['Sign-in expired. Reconnect to keep syncing.', 'Reconnect']],
     [["Couldn't reach Google Calendar. The new tab tries again every few minutes.", 'Disconnect'], ["Couldn't reach Google Drive. It tries again on its own, or reconnect.", 'Reconnect']],
     [['Connected', 'Disconnect'], ['Connected', 'Disconnect']]]);
+  check('Settings: the Theme select saves and applies', await ev(`(async () => {
+    const t = document.getElementById('theme'); t.value = 'dark'; t.dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 400));
+    const r = [(await chrome.storage.sync.get('theme')).theme, document.documentElement.dataset.theme];
+    t.value = 'system'; t.dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 300)); return r; })()`), ['dark', 'dark']);
   check('Settings: the Icons select saves the style', await ev(`(async () => {
     const s = document.getElementById('icon-style'), before = s.value; s.value = 'site'; s.dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 300));
     const saved = (await chrome.storage.sync.get('iconStyle')).iconStyle; s.value = before; s.dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 300));

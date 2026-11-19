@@ -2,10 +2,11 @@
 // They sync through chrome.storage.sync; a custom wallpaper image is too big for sync,
 // so it stays in chrome.storage.local on this computer.
 const WALLPAPERS = { meadow: 'Meadow', dusk: 'Dusk', ocean: 'Ocean', sunrise: 'Sunrise', graphite: 'Graphite', daily: 'Photo of the day', custom: 'Your image' };
-// cols/rows 0 = automatic. iconStyle: what a bookmark shows when none is chosen: its brand logo (bundled; known sites only), an emoji that fits the site, or the site's own icon. frequent: the most-visited row (needs the optional topSites permission). calendar: show the next-meeting widget (switched on by connecting, never by default). view: the home page as an icon grid or a list of cards. name: shown in the greeting. place: the city for the weather ({ name, lat, lon }), or null. hour12: null follows the computer's own clock style; clicking the clock sets true (12-hour) or false (24-hour).
-const DEFAULTS = { cols: 0, rows: 0, wallpaper: 'meadow', blur: true, iconStyle: 'brand', hiddenFolders: [], clock: true, calendar: false, frequent: false, view: 'grid', hour12: null, name: '', place: null };
+// cols/rows 0 = automatic. theme: light, dark, or the computer's own setting (system). iconStyle: what a bookmark shows when none is chosen: its brand logo (bundled; known sites only), an emoji that fits the site, or the site's own icon. frequent: the most-visited row (needs the optional topSites permission). calendar: show the next-meeting widget (switched on by connecting, never by default). view: the home page as an icon grid or a list of cards. name: shown in the greeting. place: the city for the weather ({ name, lat, lon }), or null. hour12: null follows the computer's own clock style; clicking the clock sets true (12-hour) or false (24-hour).
+const DEFAULTS = { cols: 0, rows: 0, wallpaper: 'meadow', blur: true, theme: 'system', iconStyle: 'brand', hiddenFolders: [], clock: true, calendar: false, frequent: false, view: 'grid', hour12: null, name: '', place: null };
 const LIMITS = { cols: [3, 10], rows: [2, 8] };
 const ICON_STYLES = ['brand', 'emoji', 'site'];
+const THEMES = ['system', 'light', 'dark'];
 
 const MAX_NAME = 40;
 // Plain text only: control and formatting characters (e.g. right-to-left overrides) are dropped.
@@ -23,6 +24,7 @@ function sanitize(s) {
     rows: intIn(s.rows, LIMITS.rows) ? s.rows : 0,
     wallpaper: Object.hasOwn(WALLPAPERS, s.wallpaper) ? s.wallpaper : DEFAULTS.wallpaper,
     blur: typeof s.blur === 'boolean' ? s.blur : DEFAULTS.blur,
+    theme: THEMES.includes(s.theme) ? s.theme : DEFAULTS.theme,
     // Older versions had an emoji on/off switch: off meant site icons.
     iconStyle: ICON_STYLES.includes(s.iconStyle) ? s.iconStyle : s.emoji === false ? 'site' : DEFAULTS.iconStyle,
     hiddenFolders: Array.isArray(s.hiddenFolders) ? s.hiddenFolders.filter(id => typeof id === 'string').slice(0, 50) : [],
@@ -218,8 +220,21 @@ const refreshDaily = () => (dailyRun ??= (async () => {
   }
 })());
 
+// ---- Theme ----
+// data-theme on <html> picks the colours (see glass.css). Set straight away from the computer's setting, so the
+// first paint already matches the usual case; the saved choice follows once settings load.
+const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+let themeChoice = 'system';
+const applyTheme = (choice = themeChoice) => {
+  themeChoice = choice;
+  document.documentElement.dataset.theme = choice === 'system' ? (darkQuery.matches ? 'dark' : 'light') : choice;
+};
+applyTheme();
+darkQuery.addEventListener('change', () => applyTheme()); // the computer switched (e.g. macOS Auto at sunset)
+
 async function applyWallpaper(s) {
   const root = document.documentElement;
+  applyTheme(s.theme);
   const image = s.wallpaper === 'custom' ? await getWallpaperImage() : s.wallpaper === 'daily' ? (await getDaily())?.image : null;
   root.style.setProperty('--wallpaper-image', image ? `url("${image}")` : 'none');
   root.dataset.wallpaper = image ? 'custom' : ['custom', 'daily'].includes(s.wallpaper) ? DEFAULTS.wallpaper : s.wallpaper;
