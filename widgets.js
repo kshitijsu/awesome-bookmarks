@@ -36,6 +36,7 @@ setTimeout(() => { tick(); setInterval(tick, 60_000); }, 60_000 - (Date.now() % 
 
 let meeting = null; // { title, start, end, link, join }
 let calendarState = 'off'; // off | connect | ok | error
+let calendarWhy = ''; // the last error, for the widget's tooltip
 
 const httpsUrl = u => { try { return new URL(u).protocol === 'https:' ? u : null; } catch { return null; } };
 
@@ -54,7 +55,11 @@ async function todaysEvents(token) {
   const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${query}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) throw Object.assign(new Error(`Calendar request failed (${res.status})`), { status: res.status });
+  if (!res.ok) {
+    // Google says why in the body ("Calendar API has not been used in project…"); keep it, shown as plain text only.
+    const why = await res.json().then(j => j?.error?.message, () => null);
+    throw Object.assign(new Error(`Calendar request failed (${res.status})${typeof why === 'string' ? `: ${why.slice(0, 300)}` : ''}`), { status: res.status });
+  }
   return (await res.json()).items || [];
 }
 
@@ -94,6 +99,7 @@ async function refreshMeeting() {
   } catch (err) {
     console.error(err);
     calendarState = 'error';
+    calendarWhy = err.message;
   }
   showMeeting();
 }
@@ -130,7 +136,11 @@ function showMeeting() {
     });
     return meetingEl.replaceChildren(el('span', 'widget-label', 'Next meeting'), connect);
   }
-  if (calendarState === 'error') return meetingEl.replaceChildren(label, el('span', 'widget-sub', "Couldn't load your calendar."));
+  if (calendarState === 'error') {
+    const sub = el('span', 'widget-sub', "Couldn't load your calendar.");
+    sub.title = calendarWhy; // hover for Google's reason
+    return meetingEl.replaceChildren(label, sub);
+  }
   if (!meeting) return meetingEl.replaceChildren(label, el('span', 'widget-title', 'No more meetings today'));
 
   const title = el(meeting.link ? 'a' : 'span', 'widget-title', meeting.title);
