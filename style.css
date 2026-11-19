@@ -125,7 +125,7 @@ body.searching .frequent, body.no-bookmarks .frequent { display: none; }
 .frequent-site:hover { background: rgba(255, 255, 255, .16); }
 .frequent-site:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .frequent-site > :is(img, .letter) { --icon: 32px; width: 32px; height: 32px; border-radius: var(--radius-icon); }
-.frequent-site > img { padding: 5px; background: linear-gradient(180deg, #fff, #eceef3); box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.frequent-site > img { padding: 5px; background: var(--tile-fill); box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
 
 /* While typing: "Search the web for …", in the frequent row's spot */
 .web-search { display: block; flex: none; align-self: center; max-width: min(440px, 100%); margin: -20px auto 18px; overflow: hidden; color: var(--text); white-space: nowrap; text-overflow: ellipsis; }
@@ -225,7 +225,7 @@ body.no-bookmarks #dots { display: none; }
   margin: calc(var(--icon) * (1 - var(--grow)) / 2) 0; /* growth spills into the gap: the label doesn't move */
   padding: 0;
   border-radius: var(--radius-icon);
-  background: linear-gradient(180deg, #fff, #eceef3);
+  background: var(--tile-fill);
   box-shadow: 0 6px 16px rgba(0, 0, 0, .22), 0 1px 3px rgba(0, 0, 0, .14);
   transition: box-shadow var(--fast), filter var(--fast);
 }
@@ -235,7 +235,7 @@ body.no-bookmarks #dots { display: none; }
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(170deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 42%);
+  background: var(--tile-sheen);
   box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .08), inset 0 1px 0 rgba(255, 255, 255, .7);
   pointer-events: none;
 }
@@ -256,7 +256,7 @@ body.no-bookmarks #dots { display: none; }
   gap: calc(var(--icon) * var(--grow) * .05);
   padding: calc(var(--icon) * var(--grow) * .11);
   /* lighter than the thin material: a folder should read as frosted glass, not a dark hole */
-  background: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .22));
+  background: var(--folder-fill);
   -webkit-backdrop-filter: var(--thin-blur);
   backdrop-filter: var(--thin-blur);
   box-shadow: var(--thin-shadow), var(--inner-highlight), inset 0 0 0 1px rgba(255, 255, 255, .22);
@@ -279,7 +279,7 @@ body.no-bookmarks #dots { display: none; }
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(160deg, hsl(var(--hue) 75% 64%), hsl(var(--hue) 62% 44%));
+  background: linear-gradient(160deg, hsl(var(--hue) 75% var(--letter-l1)), hsl(var(--hue) 62% var(--letter-l2)));
   color: #fff;
   font-size: calc(var(--icon) * var(--grow) * .44);
   font-weight: 600;
@@ -295,7 +295,7 @@ body.no-bookmarks #dots { display: none; }
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(160deg, hsl(var(--hue) 80% 94%), hsl(var(--hue) 55% 80%));
+  background: linear-gradient(160deg, hsl(var(--hue) 80% var(--pastel-l1)), hsl(var(--hue) 55% var(--pastel-l2)));
   font-size: calc(var(--icon) * var(--grow) * .5);
   line-height: 1;
 }
@@ -708,7 +708,7 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
   height: 28px;
   overflow: hidden;
   border-radius: var(--radius-icon);
-  background: linear-gradient(180deg, #fff, #eceef3);
+  background: var(--tile-fill);
   box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
 }
 .history-icon img { width: 64%; height: 64%; }

@@ -37,11 +37,12 @@ body::before {
   inset: 0;
   z-index: -1;
   background: var(--wallpaper);
+  filter: brightness(var(--wallpaper-dim));
   transition: opacity .3s;
 }
 :root:not([data-wallpaper]) body::before { opacity: 0; } /* hold off until settings load: no flash of the wrong one */
-:root.blur-wallpaper body::before { inset: -60px; filter: blur(28px) brightness(.85); }
+:root.blur-wallpaper body::before { inset: -60px; filter: blur(28px) brightness(calc(.85 * var(--wallpaper-dim))); }
 /* A bright photo would wash out the white labels: dim it and deepen the text shadow */
 :root.bright-wallpaper { --text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
-:root.bright-wallpaper body::before { filter: brightness(.62); }
-:root.bright-wallpaper.blur-wallpaper body::before { filter: blur(28px) brightness(.62); }
+:root.bright-wallpaper body::before { filter: brightness(calc(.62 * var(--wallpaper-dim))); }
+:root.bright-wallpaper.blur-wallpaper body::before { filter: blur(28px) brightness(calc(.62 * var(--wallpaper-dim))); }

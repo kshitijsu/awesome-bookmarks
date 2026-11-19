@@ -21,6 +21,14 @@
   --focus-ring: 0 0 0 3px rgba(255, 255, 255, .9), 0 0 0 6px rgba(10, 132, 255, .55);
   --hairline: rgba(255, 255, 255, .14);
 
+  /* Surfaces the theme changes (dark values: the [data-theme="dark"] block below) */
+  --wallpaper-dim: 1; /* brightness of the wallpaper layer */
+  --tile-fill: linear-gradient(180deg, #fff, #eceef3); /* behind a site's favicon */
+  --tile-sheen: linear-gradient(170deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 42%);
+  --folder-fill: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .22));
+  --letter-l1: 64%; --letter-l2: 44%; /* lightness of letter tiles, top to bottom */
+  --pastel-l1: 94%; --pastel-l2: 80%; /* lightness of emoji tiles */
+
   /* Shape */
   --radius-xs: 8px;
   --radius-s: 12px;
