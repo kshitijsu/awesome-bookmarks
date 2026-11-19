@@ -295,7 +295,7 @@ body.no-bookmarks #dots { display: none; }
   width: 100%;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(160deg, hsl(var(--hue) 80% var(--pastel-l1)), hsl(var(--hue) 55% var(--pastel-l2)));
+  background: linear-gradient(160deg, hsl(var(--hue) var(--pastel-s1) var(--pastel-l1)), hsl(var(--hue) var(--pastel-s2) var(--pastel-l2)));
   font-size: calc(var(--icon) * var(--grow) * .5);
   line-height: 1;
 }

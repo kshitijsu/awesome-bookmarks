@@ -27,7 +27,7 @@
   --tile-sheen: linear-gradient(170deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 42%);
   --folder-fill: linear-gradient(180deg, rgba(255, 255, 255, .42), rgba(255, 255, 255, .22));
   --letter-l1: 64%; --letter-l2: 44%; /* lightness of letter tiles, top to bottom */
-  --pastel-l1: 94%; --pastel-l2: 80%; /* lightness of emoji tiles */
+  --pastel-s1: 80%; --pastel-s2: 55%; --pastel-l1: 94%; --pastel-l2: 80%; /* emoji tiles: saturation and lightness */
 
   /* Shape */
   --radius-xs: 8px;
@@ -151,6 +151,26 @@ select, .text-input {
 select:hover { background: linear-gradient(180deg, rgba(255, 255, 255, .28), rgba(255, 255, 255, .16)); }
 select:focus-visible, .text-input:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 select option { color: #000; }
+
+/* ---- Dark theme: a dimmer wallpaper, denser smoky glass, deeper tiles ----
+   Favicon tiles stay light grey (not dark): many favicons are drawn in black and would vanish on dark. */
+:root[data-theme="dark"] {
+  color-scheme: dark; /* Chrome's own dropdowns, scrollbars and fields go dark too */
+  --wallpaper-dim: .6;
+  --thin-fill: linear-gradient(180deg, rgba(255, 255, 255, .09), rgba(255, 255, 255, .03)), rgba(12, 13, 18, .58);
+  --regular-fill: linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02) 60%), rgba(14, 15, 20, .66);
+  --thick-fill: linear-gradient(180deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02)), rgba(18, 19, 24, .86);
+  --rim: linear-gradient(150deg, rgba(255, 255, 255, .34), rgba(255, 255, 255, .08) 30%, rgba(255, 255, 255, .02) 55%, rgba(255, 255, 255, .12));
+  --inner-highlight: inset 0 1px 0 rgba(255, 255, 255, .14), inset 0 -1px 0 rgba(0, 0, 0, .2);
+  --hairline: rgba(255, 255, 255, .1);
+  --tile-fill: linear-gradient(180deg, #d9dbe0, #c3c6cc);
+  --tile-sheen: linear-gradient(170deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 42%);
+  --folder-fill: linear-gradient(180deg, rgba(255, 255, 255, .14), rgba(255, 255, 255, .06));
+  --letter-l1: 48%; --letter-l2: 32%;
+  --pastel-s1: 32%; --pastel-s2: 26%; --pastel-l1: 34%; --pastel-l2: 24%;
+}
+:root[data-theme="dark"] .glass-button:hover { --fill: linear-gradient(180deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .08)), rgba(12, 13, 18, .5); }
+:root[data-theme="dark"] select option { color: var(--text); background: #2a2c31; }
 
 /* No backdrop-filter (older browsers): solid, still-readable surfaces */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
