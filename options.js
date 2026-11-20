@@ -293,7 +293,7 @@ $('find-duplicates').onclick = async () => {
     row.append(Object.assign(document.createElement('span'), { textContent: `${extra.length} duplicates. The oldest copy of each is kept.` }));
     all.type = 'button';
     all.className = 'glass-button pill danger';
-    all.textContent = 'Delete all';
+    all.textContent = 'Delete All';
     all.onclick = async () => {
       if (!confirm(`Delete ${extra.length} duplicate bookmarks?`)) return;
       for (const b of extra) await chrome.bookmarks.remove(b.id).catch(() => {}); // already gone: fine

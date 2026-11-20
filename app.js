@@ -851,15 +851,15 @@ document.getElementById('editor-form').addEventListener('submit', async e => {
 });
 document.getElementById('editor-cancel').onclick = () => editor.close();
 
-const addBookmark = parent => openEditor('Add bookmark', {}, true, async ({ title, url, icon }) => {
+const addBookmark = parent => openEditor('Add Bookmark', {}, true, async ({ title, url, icon }) => {
   const made = await chrome.bookmarks.create({ parentId: parent.id, title: title || hostname(url), url });
   if (icon) await setIcon(made.id, icon);
 });
-const editBookmark = node => openEditor('Edit bookmark', node, true, async ({ title, url, icon }) => {
+const editBookmark = node => openEditor('Edit Bookmark', node, true, async ({ title, url, icon }) => {
   if (icon !== undefined) await setIcon(node.id, icon);
   await chrome.bookmarks.update(node.id, { title: title || hostname(url), url });
 });
-const renameFolderNode = node => openEditor('Rename folder', node, false,
+const renameFolderNode = node => openEditor('Rename Folder', node, false,
   ({ title }) => title && title !== node.title && chrome.bookmarks.update(node.id, { title }));
 
 // Add into the open folder, or the Bookmarks bar from the home grid.
@@ -905,26 +905,26 @@ document.addEventListener('contextmenu', e => {
   const el = e.target.closest('.app, .list-row'), node = el && nodes.get(el.dataset.id);
   let { clientX: x, clientY: y } = e;
   if (el && !x && !y) { const r = el.getBoundingClientRect(); [x, y] = [r.left + r.width / 2, r.top + r.height / 2]; } // from the keyboard
-  if (!node) return showMenu([['Add bookmark…', addHere]], x, y);
+  if (!node) return showMenu([['Add Bookmark…', addHere]], x, y);
   const dockItem = node.parentId === dock?.id
     ? ['Remove from Dock', () => chrome.bookmarks.move(node.id, { parentId: bar.id }).catch(console.error)]
     : ['Keep in Dock', () => toDock(node).catch(err => { console.error(err); load(); })];
   const moveItem = ['Move to…', () => showMenu(moveTargets(node), x, y)];
   if (node.url) {
     return showMenu([
-      ['Open in new tab', () => openViaApi(node.url, true)],
+      ['Open in New Tab', () => openViaApi(node.url, true)],
       dockItem,
       moveItem,
       ['Edit…', () => editBookmark(node)],
-      ['Change icon…', () => { editBookmark(node); document.getElementById('icon-more').open = true; (iconChoices.querySelector('[aria-selected="true"]') || iconChoices.firstChild)?.focus(); }],
-      ['Copy link', () => navigator.clipboard.writeText(node.url).catch(console.error)],
+      ['Change Icon…', () => { editBookmark(node); document.getElementById('icon-more').open = true; (iconChoices.querySelector('[aria-selected="true"]') || iconChoices.firstChild)?.focus(); }],
+      ['Copy Link', () => navigator.clipboard.writeText(node.url).catch(console.error)],
       ['Delete', () => removeOrReload(node), true],
     ], x, y);
   }
   const ownFolder = node.parentId !== rootId; // Chrome's root folders can't be renamed or deleted
   showMenu([
     ['Open', () => openFolder(node, el)],
-    ...(ownFolder ? [dockItem, moveItem, ['Rename…', () => renameFolderNode(node)], ['Delete folder', () => removeOrReload(node), true]] : []),
+    ...(ownFolder ? [dockItem, moveItem, ['Rename…', () => renameFolderNode(node)], ['Delete Folder', () => removeOrReload(node), true]] : []),
   ], x, y);
 });
 
@@ -1282,7 +1282,7 @@ function listCard(key, title, parent, children) {
   };
   add.type = 'button';
   add.className = 'list-add';
-  add.textContent = '+ Add link';
+  add.textContent = '+ Add Link';
   add.onclick = () => addBookmark(parent);
   // Long folders scroll inside the card, so the title and "Add link" stay in view.
   const rows = document.createElement('div');

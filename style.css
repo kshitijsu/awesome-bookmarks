@@ -64,7 +64,7 @@ body.ready :is(.greeting, .search, #pager, #dots, #widgets, #dock) { animation: 
 .greeting:empty { display: none; }
 body.no-bookmarks .greeting { margin-top: auto; }
 body.no-bookmarks .greeting + .search { margin-top: 0; }
-.widget-label { color: var(--text-2); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.widget-label { color: var(--text-2); font-size: 12px; font-weight: 600; }
 .widget-title {
   max-width: 100%;
   overflow: hidden;
@@ -134,6 +134,7 @@ body.no-bookmarks .web-search { margin: 0 auto 16px; }
 /* ---- Pages sit side by side in the track; the pager shows one at a time ---- */
 /* clip, not hidden: focusing an off-page tile must not scroll the pager behind our transforms */
 .pager { position: relative; overflow: clip; touch-action: none; }
+#folder-pager { overflow-clip-margin: 8px; } /* room for the focus ring on the top row */
 /* Breathing room between the search field (or frequent row) and the first row of apps */
 #pager { flex: 1; min-height: 0; margin-top: 24px; }
 .track { display: flex; height: 100%; transition: transform .5s var(--ease); will-change: transform; } /* kept on its own layer: no redraw when a swipe starts */
@@ -472,7 +473,7 @@ body.tasks-open .widget { max-width: max(160px, min(300px, calc(50vw - 366px)));
 .focus-label { max-width: 150px; overflow: hidden; color: var(--text-2); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
 .focus .glass-button { flex: none; padding: 5px 12px; font-size: 12.5px; }
 @media (max-width: 1240px) { .focus-label { display: none; } }
-.notes-label { margin: 4px 0 -6px 4px; color: var(--text-2); font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+.notes-label { margin: 4px 0 -6px 4px; color: var(--text-2); font-size: 13px; font-weight: 600; }
 .notes { flex: none; height: 120px; padding: 10px 12px; border: 0; border-radius: var(--radius-s); color: var(--text); font: inherit; font-size: 13.5px; line-height: 1.45; resize: vertical; outline: none; }
 .notes::placeholder { color: var(--text-3); }
 .notes:focus-visible { box-shadow: var(--focus-ring); }
@@ -793,10 +794,8 @@ body.ready .list { animation: launch .5s var(--ease); }
   list-style: none;
   cursor: pointer;
   transition: background var(--fast);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: .06em;
-  text-transform: uppercase;
 }
 .list-card summary::-webkit-details-marker { display: none; }
 .list-card summary::before { content: ""; flex: none; width: 8px; height: 8px; margin: 0 6px 3px 4px; border: solid var(--text-2); border-width: 0 1.5px 1.5px 0; rotate: 45deg; transition: rotate var(--medium) var(--ease); }

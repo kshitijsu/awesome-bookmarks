@@ -27,7 +27,7 @@ document.getElementById('importer-close').onclick = () => importer.close();
 function fillFolders() {
   const path = f => (f.parentId && f.parentId !== rootId ? `${path(nodes.get(f.parentId))} / ` : '') + f.title;
   const folders = [...nodes.values()].filter(n => !n.url && n.id !== rootId);
-  importerFolder.replaceChildren(...folders.map(f => new Option(path(f), f.id)), new Option('New folder…', NEW_FOLDER));
+  importerFolder.replaceChildren(...folders.map(f => new Option(path(f), f.id)), new Option('New Folder…', NEW_FOLDER));
   importerFolder.value = bar.id;
   importerName.hidden = true;
   importerName.value = '';

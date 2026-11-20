@@ -240,7 +240,7 @@ try {
   // The chooser: open with "Change icon…", pick the site's own icon, then a palette emoji.
   await ev(`(async () => { const n = (await chrome.bookmarks.search({ query: 'Site 2' }))[0]; const t = document.querySelector('#pager a.app[data-id="' + n.id + '"]');
     t.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 200, clientY: 200 })); await new Promise(r => setTimeout(r, 200));
-    [...document.querySelectorAll('#menu button')].find(b => b.textContent === 'Change icon…').click(); await new Promise(r => setTimeout(r, 300)); })()`);
+    [...document.querySelectorAll('#menu button')].find(b => b.textContent === 'Change Icon…').click(); await new Promise(r => setTimeout(r, 300)); })()`);
   check('Change icon… opens a chooser with many options', await ev(`({ open: editor.open, count: iconChoices.children.length > 60, first: [...iconChoices.children].slice(0, 2).map(b => b.title),
     focusInChooser: iconChoices.contains(document.activeElement) })`), { open: true, count: true, first: ['Upload an image (or paste or drop one here)', "Site's own icon"], focusInChooser: true });
   await click('#icon-choices .choice[title="Site\'s own icon"]');
@@ -525,7 +525,7 @@ try {
     links.find(a => a.hash === '#maintenance').click(); await new Promise(r => setTimeout(r, 300));
     const marked = document.querySelector('#toc a[aria-current="true"]')?.hash; scrollTo(0, 0);
     return [sections, marked]; })()`),
-    [['Appearance', 'Widgets', 'Bookmarks', 'Privacy & integrations', 'Maintenance', 'Backup & restore'], '#maintenance']);
+    [['Appearance', 'Widgets', 'Bookmarks', 'Privacy & Integrations', 'Maintenance', 'Backup & Restore'], '#maintenance']);
   // ---- Settings: backup ----
   check('Keyboard: "Restore…" is a focusable button', await ev(`(() => { const l = document.getElementById('restore').parentElement;
     l.focus(); return [document.activeElement === l, l.role]; })()`), [true, 'button']);

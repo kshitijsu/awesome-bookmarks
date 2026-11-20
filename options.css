@@ -99,7 +99,7 @@ label.row { cursor: pointer; }
 .switch:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 
 /* Wallpaper swatches */
-.swatches { display: flex; gap: 14px; padding: 6px 0 4px; overflow-x: auto; scrollbar-width: none; }
+.swatches { display: flex; flex-wrap: wrap; gap: 14px; padding: 6px 0 4px; }
 .swatch-option { display: grid; flex: none; justify-items: center; gap: 7px; color: var(--text-2); font-size: 12px; cursor: pointer; }
 .swatch-option[hidden] { display: none; }
 .swatch-option input { position: absolute; opacity: 0; pointer-events: none; }

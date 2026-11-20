@@ -20,11 +20,11 @@
       <div class="focus glass thin" role="group" aria-label="Focus timer">
         <span id="focus-time" class="focus-time" role="timer">25:00</span>
         <span id="focus-label" class="focus-label">Ready</span>
-        <button id="focus-start" class="glass-button pill primary" type="button">Focus 25</button>
+        <button id="focus-start" class="glass thin glass-button pill" type="button">Focus 25</button>
         <button id="focus-break" class="glass thin glass-button pill" type="button">Break 5</button>
         <button id="focus-stop" class="glass thin glass-button pill" type="button" hidden>Stop</button>
       </div>
-      <button id="add" class="glass thin glass-button round" type="button" aria-label="Add bookmark" title="Add bookmark">
+      <button id="add" class="glass thin glass-button round" type="button" aria-label="Add bookmark" title="Add Bookmark">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </button>
       <button id="tasks-toggle" class="glass thin glass-button round" type="button" aria-label="Tasks" aria-controls="tasks" aria-expanded="false" aria-keyshortcuts="Alt+T" title="Tasks (⌥T)">
@@ -49,7 +49,7 @@
   <div id="dock" class="pager dock glass thin" aria-label="Dock" aria-keyshortcuts="Alt+D"><div class="track"></div></div>
   <nav id="dock-dots" hidden></nav>
   <a id="photo-credit" class="photo-credit" target="_blank" rel="noopener" hidden></a>
-  <button id="import-history" class="glass thin glass-button round" type="button" aria-label="Add bookmarks from history" title="Add from history">
+  <button id="import-history" class="glass thin glass-button round" type="button" aria-label="Add bookmarks from history" title="Add from History">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/><path d="M12 7.5V12l3 2"/></svg>
   </button>
   <button id="settings" class="glass thin glass-button round" aria-label="Settings" title="Settings">
@@ -62,13 +62,13 @@
         <button id="back" class="glass thin glass-button round" aria-label="Back">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
         </button>
-        <button id="folder-add" class="glass thin glass-button round add" aria-label="Add bookmark to this folder" title="Add bookmark">
+        <button id="folder-add" class="glass thin glass-button round add" aria-label="Add bookmark to this folder" title="Add Bookmark">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         </button>
       </div>
       <input id="drawer-title" aria-label="Folder name" maxlength="255" spellcheck="false" autocomplete="off">
       <div class="drawer-side end">
-        <button id="open-all" class="glass thin glass-button pill" type="button">Open all</button>
+        <button id="open-all" class="glass thin glass-button pill" type="button">Open All</button>
       </div>
     </header>
     <div id="folder-pager" class="pager"><div class="track"></div></div>
@@ -89,7 +89,7 @@
       <input id="tasks-new" placeholder="Add a task" maxlength="200" autocomplete="off" spellcheck="false" aria-label="New task">
     </form>
     <ul id="tasks-list" class="tasks-list" aria-label="Your tasks"></ul>
-    <button id="tasks-clear" class="glass thin glass-button pill" type="button" hidden>Clear completed</button>
+    <button id="tasks-clear" class="glass thin glass-button pill" type="button" hidden>Clear Completed</button>
     <label class="notes-label" for="notes">Notes</label>
     <textarea id="notes" class="notes glass thin" maxlength="2000" placeholder="Jot something down" aria-describedby="notes-status"></textarea>
     <span id="notes-status" class="notes-status" role="status"></span>
@@ -112,11 +112,11 @@
           <div id="editor-icon" class="icon"></div>
           <input id="editor-emoji" class="emoji-input" maxlength="16" placeholder="🙂" autocomplete="off" spellcheck="false" aria-label="Emoji" title="Type or paste an emoji (⌃⌘Space)">
           <span class="or" aria-hidden="true">or</span>
-          <label class="glass thin glass-button pill" title="Or paste or drop an image here">Upload image…<input id="editor-icon-file" type="file" accept="image/*" hidden></label>
+          <label class="glass thin glass-button pill" title="Or paste or drop an image here">Upload Image…<input id="editor-icon-file" type="file" accept="image/*" hidden></label>
           <button id="editor-icon-reset" type="button" class="glass thin glass-button pill" hidden>Reset</button>
         </div>
         <details id="icon-more" class="icon-more">
-          <summary>More icons</summary>
+          <summary>More Icons</summary>
           <div id="icon-choices" class="icon-choices" role="listbox" aria-label="Choose an icon"></div>
         </details>
       </div>
@@ -131,7 +131,7 @@
   <!-- Add bookmarks from browsing history -->
   <dialog id="importer" class="glass regular" aria-labelledby="importer-heading">
     <header class="importer-head">
-      <h2 id="importer-heading">Add from history</h2>
+      <h2 id="importer-heading">Add from History</h2>
       <button id="importer-close" class="glass thin glass-button round" type="button" aria-label="Close">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
