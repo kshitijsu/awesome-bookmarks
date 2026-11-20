@@ -107,10 +107,21 @@ $('drive-button').onclick = async () => {
   await connecting('drive', connectDrive);
 };
 
+// Sync Now: send this computer's icons and wallpaper and take in other computers' changes, without waiting for the next check.
+$('drive-sync').onclick = async () => {
+  const button = $('drive-sync');
+  button.disabled = true;
+  button.textContent = 'Syncing…';
+  await syncDrive(true); // never throws: a failure is saved as the error state, which the status line shows
+  button.textContent = 'Sync Now';
+  button.disabled = false;
+};
+
 async function showDrive() {
   const ready = googleConfigured();
   const d = await getDrive();
   $('drive-button').hidden = !ready;
+  $('drive-sync').hidden = !ready || !d.on || d.error === 'expired'; // expired: Reconnect comes first
   $('drive-button').textContent = !d.on ? 'Connect' : ['failed', 'expired'].includes(d.error) ? 'Reconnect' : 'Disconnect';
   $('drive-status').textContent = !ready ? NEEDS_SETUP
     : !d.on ? 'Not connected'

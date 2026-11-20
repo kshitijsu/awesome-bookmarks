@@ -489,23 +489,23 @@ try {
   ].map(m => googleError(new Error(m)).split(/[.:]/)[0])`),
     ["Google doesn't recognise this extension's OAuth client", 'Sign in to Chrome (the profile icon, top right), then try again', 'Connecting was cancelled', 'Chrome needs the sign-in permission to connect', "Couldn't connect",
       "Your Google account's admin has turned this off (common with work accounts)"]);
-  check('Calendar and Drive: expired and failed states offer Reconnect', await ev(`(async () => {
+  check('Calendar and Drive: expired and failed states offer Reconnect; Sync Now shows once signed in', await ev(`(async () => {
     const wait = ms => new Promise(r => setTimeout(r, ms)), real = chrome.runtime.getManifest;
     chrome.runtime.getManifest = () => ({ ...real(), oauth2: { client_id: 'test.apps.googleusercontent.com' } });
-    const read = () => ['calendar', 'drive'].map(w => [document.getElementById(w + '-status').textContent, document.getElementById(w + '-button').textContent]);
+    const read = () => [...['calendar', 'drive'].map(w => [document.getElementById(w + '-status').textContent, document.getElementById(w + '-button').textContent]), document.getElementById('drive-sync').hidden];
     await chrome.storage.local.set({ calendarHealth: 'connect', drive: { on: true, error: 'expired', syncedAt: '' } });
     await chrome.storage.sync.set({ calendar: true }); await wait(400);
     const expired = read();
     await chrome.storage.local.set({ calendarHealth: 'error', drive: { on: true, error: 'failed', syncedAt: '' } }); await wait(400);
     const failed = read();
     await chrome.storage.local.set({ calendarHealth: 'ok', drive: { on: true, error: '', syncedAt: '2026-01-02T03:04:05Z' } }); await wait(400);
-    const ok = read().map(([s, b]) => [s.split(' · ')[0], b]);
+    const ok = read().map(x => Array.isArray(x) ? [x[0].split(' · ')[0], x[1]] : x);
     await chrome.storage.sync.set({ calendar: false }); await chrome.storage.local.remove(['calendarHealth', 'drive']);
     chrome.runtime.getManifest = real; await refresh();
     return [expired, failed, ok]; })()`), [
-    [['Sign-in expired. Reconnect to see your meetings.', 'Reconnect'], ['Sign-in expired. Reconnect to keep syncing.', 'Reconnect']],
-    [["Couldn't reach Google Calendar. The new tab tries again every few minutes.", 'Disconnect'], ["Couldn't reach Google Drive. It tries again on its own, or reconnect.", 'Reconnect']],
-    [['Connected', 'Disconnect'], ['Connected', 'Disconnect']]]);
+    [['Sign-in expired. Reconnect to see your meetings.', 'Reconnect'], ['Sign-in expired. Reconnect to keep syncing.', 'Reconnect'], true],
+    [["Couldn't reach Google Calendar. The new tab tries again every few minutes.", 'Disconnect'], ["Couldn't reach Google Drive. It tries again on its own, or reconnect.", 'Reconnect'], false],
+    [['Connected', 'Disconnect'], ['Connected', 'Disconnect'], false]]);
   check('Settings: the Theme select saves and applies', await ev(`(async () => {
     const t = document.getElementById('theme'); t.value = 'dark'; t.dispatchEvent(new Event('change')); await new Promise(r => setTimeout(r, 400));
     const r = [(await chrome.storage.sync.get('theme')).theme, document.documentElement.dataset.theme];
